@@ -1,0 +1,187 @@
+{
+  "version": "1.0",
+  "created_at": "2026-07-24",
+  "phase": 2,
+  "project": "taskq",
+  "layers": [
+    {
+      "name": "entry",
+      "modules": [
+        {
+          "name": "taskq.__main__"
+        },
+        {
+          "name": "taskq.cli"
+        }
+      ],
+      "allowed_dependencies": [
+        "execution",
+        "policy",
+        "persistence",
+        "foundation"
+      ]
+    },
+    {
+      "name": "execution",
+      "modules": [
+        {
+          "name": "taskq.executor"
+        }
+      ],
+      "allowed_dependencies": [
+        "policy",
+        "persistence",
+        "foundation"
+      ]
+    },
+    {
+      "name": "policy",
+      "modules": [
+        {
+          "name": "taskq.breaker"
+        },
+        {
+          "name": "taskq.cache"
+        }
+      ],
+      "allowed_dependencies": [
+        "persistence",
+        "foundation"
+      ]
+    },
+    {
+      "name": "persistence",
+      "modules": [
+        {
+          "name": "taskq.store"
+        }
+      ],
+      "allowed_dependencies": [
+        "foundation"
+      ]
+    },
+    {
+      "name": "foundation",
+      "modules": [
+        {
+          "name": "taskq.config"
+        },
+        {
+          "name": "taskq.models"
+        }
+      ],
+      "allowed_dependencies": []
+    }
+  ],
+  "dependencies": {
+    "entry": [
+      "execution",
+      "policy",
+      "persistence",
+      "foundation"
+    ],
+    "execution": [
+      "policy",
+      "persistence",
+      "foundation"
+    ],
+    "policy": [
+      "persistence",
+      "foundation"
+    ],
+    "persistence": [
+      "foundation"
+    ]
+  },
+  "quality_targets": {
+    "max_complexity": 15,
+    "min_coverage": 80,
+    "max_coupling": 0.3
+  },
+  "nfr_dimension_mapping": {
+    "NFR-01": "performance",
+    "NFR-02": "security",
+    "NFR-03": "error_handling",
+    "NFR-04": "security",
+    "NFR-05": "readability",
+    "NFR-07": "error_handling",
+    "NFR-08": "error_handling",
+    "NFR-10": "readability"
+  },
+  "nfr_traceability": {
+    "NFR-01": {
+      "type": "performance",
+      "target": "submit + status p95 < 50 ms over 100 iterations",
+      "module": "taskq.store"
+    },
+    "NFR-02": {
+      "type": "security",
+      "target": "zero shell=True usage; all 7 injection characters have negative tests",
+      "module": "taskq.cli"
+    },
+    "NFR-03": {
+      "type": "reliability",
+      "target": "all 3 data files remain valid JSON after interruption; breaker recovery <= cooldown + 1 s",
+      "module": "taskq.store"
+    },
+    "NFR-04": {
+      "type": "security",
+      "target": "matching output lines are replaced with [REDACTED] before persistence",
+      "module": "taskq.executor"
+    },
+    "NFR-05": {
+      "type": "maintainability",
+      "target": "all public functions and classes have docstrings containing [FR-XX]",
+      "module": "taskq.models"
+    },
+    "NFR-06": {
+      "type": "deployability",
+      "target": "all 8 TASKQ_* settings are centralized in config.py and documented",
+      "module": "taskq.config"
+    },
+    "NFR-07": {
+      "type": "reliability",
+      "target": "all 4 fault scenarios recover or fail fast without silent rebuild",
+      "module": "taskq.store"
+    },
+    "NFR-08": {
+      "type": "reliability",
+      "target": "4 concurrent processes preserve all 3 JSON files; network filesystems warn on lock fallback",
+      "module": "taskq.store"
+    },
+    "NFR-09": {
+      "type": "scalability",
+      "target": "1000-task p95 < 100 ms; run --all loses 0 of 100 tasks; peak memory < 100 MB",
+      "module": "taskq.executor"
+    },
+    "NFR-10": {
+      "type": "maintainability",
+      "target": "version=1 roots; older versions migrate with backup; future versions and migration failures exit 1",
+      "module": "taskq.store"
+    }
+  },
+  "advisory_only": [
+    "deployability",
+    "scalability"
+  ],
+  "gate_score_overrides": {
+    "performance": 75.0,
+    "security": 80.0,
+    "error_handling": 80.0,
+    "readability": 80.0
+  },
+  "fr_module_traceability": {
+    "FR-01": "taskq.cli",
+    "FR-02": "taskq.executor",
+    "FR-03": "taskq.breaker",
+    "FR-04": "taskq.cache",
+    "FR-05": "taskq.cli"
+  },
+  "architecture_constraints": [
+    "no_circular_dependencies"
+  ],
+  "high_risk_modules": [
+    "taskq.executor",
+    "taskq.store"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "fr": "TEST_SPEC.md",
+  "review_status": "APPROVE",
+  "reason": "TEST_SPEC.md is well-formed and highly self-consistent against SRS.md, SAD.md, and ADR.md. Verified programmatically: harness_cli.py check-test-spec-consistency reports 0 contradictions and check-property-spec --no-require-execution reports OK with the 2 documented needs-review properties (FR-03 case8, FR-04 case2), matching the doc's own narrative. Manually recomputed every Summary table count (85 total, all 9 type buckets) from the raw case tables and all totals match exactly. All 7 SAD §6 STRIDE threats' verified_by test names (test_submit_rejects_injection_chars, test_no_shell_true_in_source, test_secret_redaction_before_truncation, test_cross_process_no_corruption, test_fault_injection_fails_fast_or_recovers, test_task_records_timestamps, test_inject_fault_rejected_in_production) appe",
+  "citations": [
+    "02-architecture/TEST_SPEC.md:93",
+    "02-architecture/TEST_SPEC.md:106",
+    "02-architecture/TEST_SPEC.md:146",
+    "01-requirements/SRS.md:188",
+    "02-architecture/TEST_SPEC.md:64",
+    "01-requirements/SRS.md:117",
+    "02-architecture/TEST_SPEC.md:33",
+    "02-architecture/TEST_SPEC.md:312",
+    "01-requirements/SRS.md:474",
+    "02-architecture/adr/ADR.md:397",
+    "02-architecture/TEST_SPEC.md:238",
+    "02-architecture/SAD.md:208"
+  ],
+  "docs_embedded": [
+    "SRS.md",
+    "SAD.md",
+    "TEST_SPEC.md",
+    "ADR.md",
+    "TEST_INVENTORY.yaml",
+    "TRACEABILITY_MATRIX.md"
+  ],
+  "confidence": 0.9
+}
