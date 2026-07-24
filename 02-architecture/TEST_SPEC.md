@@ -62,13 +62,13 @@
 | 9 | `test_submit_injection_less_than_rejected` | char_name="less_than"; command="echo hi < in.txt"; expected_exit="2" | validation | Q2/AC-1.3 |
 | 10 | `test_submit_injection_backtick_rejected` | char_name="backtick"; command="echo `whoami`"; expected_exit="2" | validation | Q2/AC-1.3 |
 | 11 | `test_name_uniqueness` | name="build"; existing_status="pending"; expected_exit="2" | validation | Q2/AC-1.4 |
-| 11a | `test_name_uniqueness` | name="build"; existing_status="running"; expected_exit="2" | validation | Q2/AC-1.4 |
 | 12 | `test_atomic_add_task` | command="echo hi"; expected_status="pending" | happy_path | Q1/AC-1.5 |
 | 13 | `test_submit_json_output` | command="echo hi"; json_flag="true"; expected_status="pending" | happy_path | Q1/AC-1.6 |
 | 14 | `test_submit_rejects_injection_chars` | chars_list="semicolon;pipe;ampersand;dollar;greater_than;less_than;backtick"; expected_exit="2" | nfr_pattern | Q6/1c/NP-08,NP-04 (SEC:T-01) |
 | 15 | `test_cross_process_no_corruption` | process_count="4"; expected_valid_json="true" | nfr_pattern | Q6/1c/NP-08,NP-04 (SEC:T-04) — tests/integration/ |
 | 16 | `test_fault_injection_fails_fast_or_recovers` | fault_scenario="kill-mid-write"; expected_outcome="fail_fast_or_recover" | nfr_pattern | Q6/1c/NP-03 (SEC:T-05) — tests/integration/ |
 | 17 | `test_task_records_timestamps` | task_id="a1b2c3d4"; expected_fields="created_at,finished_at,exit_code,status" | nfr_pattern | Q6/1c/NP-09 (SEC:T-06) |
+| 18 | `test_name_uniqueness` | name="build"; existing_status="running"; expected_exit="2" | validation | Q2/AC-1.4 |
 
 **Sub-assertions** (predicate over a case's declared Inputs / the production `result`):
 
@@ -79,7 +79,7 @@
 | AC1-boundary-at | `command_length == "1000"` | 3 |
 | AC1-validation-exit2 | `expected_exit == "2"` | 1, 4, 5, 6, 7, 8, 9, 10, 11 |
 | AC1-name-existing-state | `existing_status == "pending"` | 11 |
-| AC1-name-existing-state-running | `existing_status == "running"` | 11a |
+| AC1-name-existing-state-running | `existing_status == "running"` | 18 |
 | AC1-happy-atomic | `command == "echo hi"` | 12 |
 | AC1-happy-json | `json_flag == "true"` | 13 |
 | AC1-aggregate-injection | `"semicolon" in chars_list` | 14 |
