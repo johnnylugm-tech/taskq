@@ -1,9 +1,9 @@
 {
   "state": "RUNNING",
-  "current_phase": 1,
+  "current_phase": 2,
   "last_gate": null,
   "last_fr": null,
-  "last_update": "2026-07-23T12:33:30.625678+00:00",
+  "last_update": "2026-07-24T00:06:08.456999+00:00",
   "language": "python",
   "last_push_checkpoint": "2026-07-24T00:05:56.673994+00:00",
   "last_push_checkpoint_phase": 1,
@@ -12,5 +12,8 @@
       "sha": "b504a2d054bbfe5fe0287e39bb99ab1948248f1d",
       "timestamp": "2026-07-24T00:05:56.674118+00:00"
     }
-  }
+  },
+  "test_inventory_checksum": "9b6704fff573aadb9af82bf0167a9ffb7e0817b17c068d4e62418c83b7650180",
+  "phase_truth_passed": true,
+  "last_milestone_command": "advance-phase --completed-phase 1"
 }
