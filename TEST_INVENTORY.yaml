@@ -1,20 +1,637 @@
 # TEST_INVENTORY.yaml — P1 Naming Authority
-# Maps every FR to expected test function names. These are the AUTHORITATIVE names
-# that derive_test_cases.md preserves in TEST_SPEC.md (P2 single source of truth).
-# Specified per FR and per test category (unit/integration/cross_cutting).
-# If no name is specified for a category, derive_test_cases.md fills the gap with
-# names derived via the 7-Question Protocol.
-format_version: "1.1"
+# Authoritative pytest names derived from the approved SRS and traceability matrix.
+# Counted coverage is the independent entries under `tests`; cross-cutting names are
+# downstream NFR naming guidance and do not duplicate the counted FR contracts.
+format_version: "2.0"
 
+test_inventory:
+  project: "taskq"
+  phase: 1
+  language: "python"
+  framework: "pytest"
+  sources:
+    srs: "01-requirements/SRS.md"
+    traceability_matrix: "01-requirements/TRACEABILITY_MATRIX.md"
+    matrix_test_trace: "TRACEABILITY_MATRIX.md §4"
+  naming_convention:
+    pattern: "^test_[a-z0-9_]+$"
+    tc_id_pattern: "^TC-FR[0-9]{2}-[0-9]{2}[a-z]?$"
+  matrix_alignment:
+    fr_acceptance_criteria_rows: 28
+    expanded_test_contracts: 34
+    expansion:
+      source: "AC-1.3 / injection-character row marked x7 in TRACEABILITY_MATRIX.md §4"
+      tc_ids:
+        - "TC-FR01-03a"
+        - "TC-FR01-03b"
+        - "TC-FR01-03c"
+        - "TC-FR01-03d"
+        - "TC-FR01-03e"
+        - "TC-FR01-03f"
+        - "TC-FR01-03g"
+
+tests:
+  - tc_id: "TC-FR01-01"
+    fr_id: "FR-01"
+    ac_id: "AC-1.1"
+    test_function: "test_submit_empty_command_exits_2"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command that is empty after whitespace stripping."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR01-02"
+    fr_id: "FR-01"
+    ac_id: "AC-1.2"
+    test_function: "test_submit_long_command_exits_2"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing 1001 characters."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR01-03a"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_semicolon_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the semicolon character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-03b"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_pipe_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the pipe character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-03c"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_ampersand_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the ampersand character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-03d"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_dollar_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the dollar-sign character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-03e"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_greater_than_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the greater-than character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-03f"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_less_than_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the less-than character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-03g"
+    fr_id: "FR-01"
+    ac_id: "AC-1.3"
+    test_function: "test_submit_injection_backtick_rejected"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a command containing the backtick character."
+    asserts:
+      - "exit_code == 2"
+      - "stderr contains a validation error"
+      - "tasks.json is not created or changed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR01-04"
+    fr_id: "FR-01"
+    ac_id: "AC-1.4"
+    test_function: "test_name_uniqueness"
+    layer: "unit"
+    test_file: "tests/store/test_validation.py"
+    scenario: "Submit a name already used by a pending or running task."
+    asserts:
+      - "each pending/running name collision exits with code 2"
+      - "stderr contains a validation error"
+      - "the colliding task is not added"
+    cross_ref_frs: []
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR01-05"
+    fr_id: "FR-01"
+    ac_id: "AC-1.5"
+    test_function: "test_atomic_add_task"
+    layer: "unit"
+    test_file: "tests/store/test_validation.py"
+    scenario: "Persist a valid task submission."
+    asserts:
+      - "id matches exactly eight lowercase hexadecimal characters derived from uuid4"
+      - "record contains command, name, created_at, and status == pending"
+      - "tasks.json is valid JSON after an atomic write"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-03"]
+
+  - tc_id: "TC-FR01-06"
+    fr_id: "FR-01"
+    ac_id: "AC-1.6"
+    test_function: "test_submit_json_output"
+    layer: "unit"
+    test_file: "tests/cli/test_submit.py"
+    scenario: "Submit a valid command with the global JSON-output flag."
+    asserts:
+      - "exit_code == 0"
+      - "stdout is one parseable JSON line"
+      - "stdout object contains the generated id and status == pending"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR02-01"
+    fr_id: "FR-02"
+    ac_id: "AC-2.1"
+    test_function: "test_shell_true_grep_zero_matches"
+    layer: "unit"
+    test_file: "tests/executor/test_run.py"
+    scenario: "Execute a task while inspecting the subprocess invocation and production source."
+    asserts:
+      - "subprocess.run receives shlex.split(command)"
+      - "capture_output is true, text is true, and timeout uses TASKQ_TASK_TIMEOUT"
+      - "production code contains zero shell=True call sites"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-02"]
+
+  - tc_id: "TC-FR02-02"
+    fr_id: "FR-02"
+    ac_id: "AC-2.2"
+    test_function: "test_state_transitions"
+    layer: "unit"
+    test_file: "tests/executor/test_run.py"
+    scenario: "Execute success, non-zero, and timeout outcomes from pending tasks."
+    asserts:
+      - "pending transitions through running"
+      - "exit code 0 produces done"
+      - "non-zero exit produces failed and TimeoutExpired produces timeout"
+    cross_ref_frs: []
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR02-03"
+    fr_id: "FR-02"
+    ac_id: "AC-2.3"
+    test_function: "test_result_record_fields"
+    layer: "unit"
+    test_file: "tests/executor/test_run.py"
+    scenario: "Persist the result of a completed task."
+    asserts:
+      - "result contains exit_code, duration_ms, and finished_at"
+      - "stdout_tail contains at most the final 2000 characters"
+      - "stderr_tail contains at most the final 2000 characters"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-04"]
+
+  - tc_id: "TC-FR02-04"
+    fr_id: "FR-02"
+    ac_id: "AC-2.4"
+    test_function: "test_run_all_concurrent"
+    layer: "integration"
+    test_file: "tests/integration/test_run_all.py"
+    scenario: "Run all pending tasks with configured concurrency."
+    asserts:
+      - "ThreadPoolExecutor is constructed with TASKQ_MAX_WORKERS"
+      - "all pending tasks are submitted for execution"
+      - "shared store writes remain valid under threading.Lock"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: ["NFR-09"]
+
+  - tc_id: "TC-FR02-05"
+    fr_id: "FR-02"
+    ac_id: "AC-2.5"
+    test_function: "test_timeout_exit_code_4"
+    layer: "unit"
+    test_file: "tests/executor/test_run.py"
+    scenario: "Run one task that exceeds TASKQ_TASK_TIMEOUT."
+    asserts:
+      - "task status == timeout"
+      - "single-task command exit_code == 4"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR03-01"
+    fr_id: "FR-03"
+    ac_id: "AC-3.1"
+    test_function: "test_retry_exponential_backoff"
+    layer: "integration"
+    test_file: "tests/integration/test_retry.py"
+    scenario: "Run failed and timed-out tasks through the retry limit with injected sleep."
+    asserts:
+      - "at most TASKQ_RETRY_LIMIT retries follow the initial attempt"
+      - "retry delays equal TASKQ_BACKOFF_BASE * 2^n"
+      - "the injected sleep function receives every expected delay"
+    cross_ref_frs: []
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR03-02"
+    fr_id: "FR-03"
+    ac_id: "AC-3.2"
+    test_function: "test_breaker_open_threshold"
+    layer: "unit"
+    test_file: "tests/breaker/test_state_machine.py"
+    scenario: "Record consecutive final failures up to the configured threshold."
+    asserts:
+      - "failures below TASKQ_BREAKER_THRESHOLD keep the breaker closed"
+      - "the threshold failure transitions the breaker to OPEN"
+    cross_ref_frs: []
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR03-03"
+    fr_id: "FR-03"
+    ac_id: "AC-3.3"
+    test_function: "test_breaker_open_refuses_exit_3"
+    layer: "unit"
+    test_file: "tests/breaker/test_state_machine.py"
+    scenario: "Attempt a run while the global breaker is OPEN."
+    asserts:
+      - "exit_code == 3"
+      - "stderr contains 'breaker open'"
+      - "no subprocess is executed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR03-04"
+    fr_id: "FR-03"
+    ac_id: "AC-3.4"
+    test_function: "test_breaker_half_open_probe"
+    layer: "unit"
+    test_file: "tests/breaker/test_state_machine.py"
+    scenario: "Advance time beyond cooldown and exercise successful and failed probes."
+    asserts:
+      - "OPEN transitions to HALF_OPEN after TASKQ_BREAKER_COOLDOWN"
+      - "exactly one probe is allowed"
+      - "success closes and resets the breaker; failure reopens it"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-03"]
+
+  - tc_id: "TC-FR03-05"
+    fr_id: "FR-03"
+    ac_id: "AC-3.5"
+    test_function: "test_breaker_state_persistence"
+    layer: "integration"
+    test_file: "tests/integration/test_retry.py"
+    scenario: "Persist and reload breaker state across process-equivalent instances."
+    asserts:
+      - "breaker.json records the current breaker state and counters"
+      - "a new instance reloads the persisted state"
+      - "breaker.json remains valid after atomic replacement"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-03"]
+
+  - tc_id: "TC-FR04-01"
+    fr_id: "FR-04"
+    ac_id: "AC-4.1"
+    test_function: "test_signature_sha256"
+    layer: "unit"
+    test_file: "tests/cache/test_ttl.py"
+    scenario: "Compute a cache signature for a known command."
+    asserts:
+      - "signature equals sha256(command)"
+      - "the complete command string determines the digest"
+    cross_ref_frs: []
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR04-02"
+    fr_id: "FR-04"
+    ac_id: "AC-4.2"
+    test_function: "test_cached_replay_within_ttl"
+    layer: "integration"
+    test_file: "tests/integration/test_cached_run.py"
+    scenario: "Run a same-signature task with --cached before TTL expiry."
+    asserts:
+      - "cached exit_code and stdout_tail are replayed"
+      - "no subprocess is spawned"
+      - "task status == done and cached == true"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR04-03"
+    fr_id: "FR-04"
+    ac_id: "AC-4.3"
+    test_function: "test_cache_miss_normal_execution"
+    layer: "integration"
+    test_file: "tests/integration/test_cached_run.py"
+    scenario: "Run with a missing or expired cache entry."
+    asserts:
+      - "the task executes normally"
+      - "a successful done result is written to cache.json"
+      - "an expired result is not replayed"
+    cross_ref_frs: ["FR-05"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR04-04"
+    fr_id: "FR-04"
+    ac_id: "AC-4.4"
+    test_function: "test_cache_concurrent_writes"
+    layer: "unit"
+    test_file: "tests/cache/test_ttl.py"
+    scenario: "Perform concurrent cache reads and writes."
+    asserts:
+      - "cache access is guarded for thread safety"
+      - "cache.json remains parseable after concurrent writes"
+      - "writes use atomic replacement"
+    cross_ref_frs: ["FR-02"]
+    cross_ref_nfrs: ["NFR-03"]
+
+  - tc_id: "TC-FR05-01"
+    fr_id: "FR-05"
+    ac_id: "AC-5.1"
+    test_function: "test_subcommands_wired"
+    layer: "unit"
+    test_file: "tests/cli/test_argparse.py"
+    scenario: "Build the parser and inspect each documented subcommand."
+    asserts:
+      - "submit, run, status, list, and clear parse successfully"
+      - "each subcommand dispatches to its documented handler"
+    cross_ref_frs: ["FR-01", "FR-02", "FR-04"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR05-02"
+    fr_id: "FR-05"
+    ac_id: "AC-5.2"
+    test_function: "test_run_args"
+    layer: "unit"
+    test_file: "tests/cli/test_argparse.py"
+    scenario: "Parse run with an id, --cached, and --all combinations."
+    asserts:
+      - "run accepts a positional task id"
+      - "run accepts --cached for a single id"
+      - "run accepts the documented --all form"
+    cross_ref_frs: ["FR-02", "FR-04"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR05-03"
+    fr_id: "FR-05"
+    ac_id: "AC-5.3"
+    test_function: "test_global_json_flag"
+    layer: "unit"
+    test_file: "tests/cli/test_argparse.py"
+    scenario: "Invoke supported commands with the global --json flag."
+    asserts:
+      - "output is one parseable JSON line"
+      - "no human-readable text contaminates JSON output"
+    cross_ref_frs: ["FR-01"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR05-04"
+    fr_id: "FR-05"
+    ac_id: "AC-5.4"
+    test_function: "test_exit_code_map"
+    layer: "integration"
+    test_file: "tests/integration/test_cli_exit_codes.py"
+    scenario: "Exercise success, validation, breaker-open, timeout, and internal-error outcomes."
+    asserts:
+      - "success exits 0"
+      - "input validation exits 2, breaker open exits 3, and single-task timeout exits 4"
+      - "other internal errors exit 1"
+    cross_ref_frs: ["FR-01", "FR-02", "FR-03"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR05-05"
+    fr_id: "FR-05"
+    ac_id: "AC-5.5"
+    test_function: "test_status_list_clear"
+    layer: "unit"
+    test_file: "tests/cli/test_argparse.py"
+    scenario: "Use status, filtered list, and clear against populated task storage."
+    asserts:
+      - "status outputs the full selected task record"
+      - "list returns all tasks or only the requested status"
+      - "clear empties TASKQ_HOME"
+    cross_ref_frs: []
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR05-06"
+    fr_id: "FR-05"
+    ac_id: "AC-5.6"
+    test_function: "test_unknown_task_exit_2"
+    layer: "integration"
+    test_file: "tests/integration/test_cli_exit_codes.py"
+    scenario: "Use status, run, and clear with an unknown task id."
+    asserts:
+      - "each command exits 2"
+      - "stderr contains the verbatim phrase 'unknown task: <id>'"
+    cross_ref_frs: ["FR-02"]
+    cross_ref_nfrs: []
+
+  - tc_id: "TC-FR05-07"
+    fr_id: "FR-05"
+    ac_id: "AC-5.7"
+    test_function: "test_corrupted_store_exit_1"
+    layer: "integration"
+    test_file: "tests/integration/test_cli_exit_codes.py"
+    scenario: "Start taskq with a non-parseable tasks.json file."
+    asserts:
+      - "exit_code == 1"
+      - "stderr contains 'store corrupted'"
+      - "the corrupted file is not silently rebuilt"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-03", "NFR-07"]
+
+  - tc_id: "TC-FR05-08"
+    fr_id: "FR-05"
+    ac_id: "AC-5.8"
+    test_function: "test_no_bare_except"
+    layer: "static"
+    test_file: "tests/static/test_no_swallow.py"
+    scenario: "Inspect production exception handlers."
+    asserts:
+      - "production code has no bare except handler"
+      - "production code does not swallow unexpected Exception values"
+      - "unexpected exceptions reach the canonical exit-1 boundary"
+    cross_ref_frs: []
+    cross_ref_nfrs: ["NFR-07"]
+
+# Legacy naming map consumed by derive_test_cases.md in Phase 2. Every name below
+# is identical to one test_function in the counted `tests` block.
 fr_tests:
   FR-01:
     unit:
-      - test_fr01_example_unit
+      - "test_submit_empty_command_exits_2"
+      - "test_submit_long_command_exits_2"
+      - "test_submit_injection_semicolon_rejected"
+      - "test_submit_injection_pipe_rejected"
+      - "test_submit_injection_ampersand_rejected"
+      - "test_submit_injection_dollar_rejected"
+      - "test_submit_injection_greater_than_rejected"
+      - "test_submit_injection_less_than_rejected"
+      - "test_submit_injection_backtick_rejected"
+      - "test_name_uniqueness"
+      - "test_atomic_add_task"
+      - "test_submit_json_output"
+    integration: []
+    static: []
+  FR-02:
+    unit:
+      - "test_shell_true_grep_zero_matches"
+      - "test_state_transitions"
+      - "test_result_record_fields"
+      - "test_timeout_exit_code_4"
     integration:
-      - test_fr01_example_integration
+      - "test_run_all_concurrent"
+    static: []
+  FR-03:
+    unit:
+      - "test_breaker_open_threshold"
+      - "test_breaker_open_refuses_exit_3"
+      - "test_breaker_half_open_probe"
+    integration:
+      - "test_retry_exponential_backoff"
+      - "test_breaker_state_persistence"
+    static: []
+  FR-04:
+    unit:
+      - "test_signature_sha256"
+      - "test_cache_concurrent_writes"
+    integration:
+      - "test_cached_replay_within_ttl"
+      - "test_cache_miss_normal_execution"
+    static: []
+  FR-05:
+    unit:
+      - "test_subcommands_wired"
+      - "test_run_args"
+      - "test_global_json_flag"
+      - "test_status_list_clear"
+    integration:
+      - "test_exit_code_map"
+      - "test_unknown_task_exit_2"
+      - "test_corrupted_store_exit_1"
+    static:
+      - "test_no_bare_except"
 
+# NFR names are retained as downstream cross-cutting naming guidance. Shared FR/NFR
+# cases reuse the same function name and are linked above through cross_ref_nfrs.
 cross_cutting:
-  security:
-    - test_security_example
-  deployment:
-    - test_deployment_example
+  NFR-01:
+    performance:
+      - "test_kpi_submit_status_p95_under_50ms_100_iter"
+  NFR-02:
+    security:
+      - "test_shell_true_grep_zero_matches"
+      - "test_submit_injection_semicolon_rejected"
+      - "test_submit_injection_pipe_rejected"
+      - "test_submit_injection_ampersand_rejected"
+      - "test_submit_injection_dollar_rejected"
+      - "test_submit_injection_greater_than_rejected"
+      - "test_submit_injection_less_than_rejected"
+      - "test_submit_injection_backtick_rejected"
+  NFR-03:
+    reliability:
+      - "test_atomic_write_three_files"
+      - "test_mid_write_crash"
+      - "test_recovery_within_cooldown_plus_1s"
+  NFR-04:
+    security:
+      - "test_sk_token_redacted"
+      - "test_token_equals_redacted"
+  NFR-05:
+    maintainability:
+      - "test_docstring_fr_xx_tag_coverage"
+  NFR-06:
+    deployability:
+      - "test_config_reads_all_8_env_vars_with_defaults"
+      - "test_env_example_declares_all_8_vars"
+  NFR-07:
+    resilience:
+      - "test_corrupt_mid_write"
+      - "test_oserror_on_write"
+      - "test_disk_full"
+      - "test_kill_mid_write"
+      - "test_inject_fault_rejected_on_prod"
+  NFR-08:
+    concurrency:
+      - "test_posix_flock"
+      - "test_network_fs_warning"
+      - "test_four_process_concurrent"
+  NFR-09:
+    scalability:
+      - "test_kpi_submit_status_p95_under_100ms_1000_tasks"
+      - "test_run_all_100_tasks_no_loss"
+      - "test_memory_under_100mb"
+  NFR-10:
+    evolvability:
+      - "test_version_field_invariant"
+      - "test_v0_migrate_with_backup"
+      - "test_v2_refuses"
+      - "test_migration_fail_fast"
+
+coverage_summary:
+  total_test_cases: 34
+  by_fr:
+    FR-01:
+      tc_count: 12
+    FR-02:
+      tc_count: 5
+    FR-03:
+      tc_count: 5
+    FR-04:
+      tc_count: 4
+    FR-05:
+      tc_count: 8
+  by_layer:
+    unit:
+      count: 25
+    integration:
+      count: 8
+    static:
+      count: 1
