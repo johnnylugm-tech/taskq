@@ -62,6 +62,7 @@
 | 9 | `test_submit_injection_less_than_rejected` | char_name="less_than"; command="echo hi < in.txt"; expected_exit="2" | validation | Q2/AC-1.3 |
 | 10 | `test_submit_injection_backtick_rejected` | char_name="backtick"; command="echo `whoami`"; expected_exit="2" | validation | Q2/AC-1.3 |
 | 11 | `test_name_uniqueness` | name="build"; existing_status="pending"; expected_exit="2" | validation | Q2/AC-1.4 |
+| 11a | `test_name_uniqueness` | name="build"; existing_status="running"; expected_exit="2" | validation | Q2/AC-1.4 |
 | 12 | `test_atomic_add_task` | command="echo hi"; expected_status="pending" | happy_path | Q1/AC-1.5 |
 | 13 | `test_submit_json_output` | command="echo hi"; json_flag="true"; expected_status="pending" | happy_path | Q1/AC-1.6 |
 | 14 | `test_submit_rejects_injection_chars` | chars_list="semicolon;pipe;ampersand;dollar;greater_than;less_than;backtick"; expected_exit="2" | nfr_pattern | Q6/1c/NP-08,NP-04 (SEC:T-01) |
@@ -78,6 +79,7 @@
 | AC1-boundary-at | `command_length == "1000"` | 3 |
 | AC1-validation-exit2 | `expected_exit == "2"` | 1, 4, 5, 6, 7, 8, 9, 10, 11 |
 | AC1-name-existing-state | `existing_status == "pending"` | 11 |
+| AC1-name-existing-state-running | `existing_status == "running"` | 11a |
 | AC1-happy-atomic | `command == "echo hi"` | 12 |
 | AC1-happy-json | `json_flag == "true"` | 13 |
 | AC1-aggregate-injection | `"semicolon" in chars_list` | 14 |
@@ -291,19 +293,24 @@ exercises the round trip across arbitrary signatures/results within TTL.
 
 ### NFR-07: Resilience — fault injection (4 scenarios + production gating)
 
+The `--inject-fault=<scenario>` CLI surface is gated by the test/development opt-in env var `TASKQ_INJECT_FAULT_OK=1` (per SAD.md §2.3.1). Cases 1–4 run with that env var set; case 5 confirms the production-rejection branch fires when the env var is unset.
+
 | # | Test Function | Inputs | Type | Derivation |
 |---|---|---|---|---|
-| 1 | `test_corrupt_mid_write` | fault_type="corrupt-mid-write"; cli_flag="--inject-fault=corrupt-mid-write"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
-| 2 | `test_oserror_on_write` | fault_type="oserror-on-write"; cli_flag="--inject-fault=oserror-on-write"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
-| 3 | `test_disk_full` | fault_type="disk-full"; cli_flag="--inject-fault=disk-full"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
-| 4 | `test_kill_mid_write` | fault_type="kill-mid-write"; cli_flag="--inject-fault=kill-mid-write"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
-| 5 | `test_inject_fault_rejected_on_prod` | cli_flag="--inject-fault=corrupt-mid-write"; env="production"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="false"; expected_rejected="true" | negative_constraint | Q8 |
+| 1 | `test_corrupt_mid_write` | fault_type="corrupt-mid-write"; cli_flag="--inject-fault=corrupt-mid-write"; env="TASKQ_INJECT_FAULT_OK=1"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
+| 2 | `test_oserror_on_write` | fault_type="oserror-on-write"; cli_flag="--inject-fault=oserror-on-write"; env="TASKQ_INJECT_FAULT_OK=1"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
+| 3 | `test_disk_full` | fault_type="disk-full"; cli_flag="--inject-fault=disk-full"; env="TASKQ_INJECT_FAULT_OK=1"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
+| 4 | `test_kill_mid_write` | fault_type="kill-mid-write"; cli_flag="--inject-fault=kill-mid-write"; env="TASKQ_INJECT_FAULT_OK=1"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="true"; expected_outcome="recover_or_failfast" | fault_injection | Q5/NP-07 |
+| 5 | `test_inject_fault_rejected_on_prod` | cli_flag="--inject-fault=corrupt-mid-write"; env="production"; env_TASKQ_INJECT_FAULT_OK="unset"; subprocess_mode="out_of_process"; shared_TASKQ_HOME="false"; expected_rejected="true"; expected_exit="2"; expected_stderr="inject-fault rejected in production" | negative_constraint | Q8 |
 
 | rule_id | predicate (over Inputs / result) | applies_to (case #) |
 |---|---|---|
 | NFR07-outcome | `expected_outcome == "recover_or_failfast"` | 1, 2, 3, 4 |
 | NFR07-scenario-in-flag | `fault_type in cli_flag` | 1, 2, 3, 4 |
+| NFR07-test-gate-set | `env == "TASKQ_INJECT_FAULT_OK=1"` | 1, 2, 3, 4 |
 | NFR07-rejected | `expected_rejected == "true"` | 5 |
+| NFR07-rejected-exit2 | `expected_exit == "2"` | 5 |
+| NFR07-rejected-stderr | `"inject-fault rejected in production" in expected_stderr` | 5 |
 
 ### NFR-08: Concurrency — cross-process safety
 
@@ -399,9 +406,9 @@ CLI equivalent — the module entrypoint must start and exit cleanly:
 | Metric | Count |
 |---|---|
 | FRs covered | 5 / 5 |
-| Total test cases | 85 |
+| Total test cases | 86 |
 | By type: happy_path | 14 |
-| By type: validation/failure | 22 |
+| By type: validation/failure | 23 |
 | By type: boundary | 5 |
 | By type: state_transition | 8 |
 | By type: fault_injection | 6 |
