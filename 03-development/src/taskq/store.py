@@ -10,11 +10,26 @@ import fcntl
 import json
 import os
 import tempfile
+import threading
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
+
+
+# Shared in-process write lock; complements fcntl.flock for threads spawned
+# inside a single Python process (e.g. ThreadPoolExecutor in FR-02).
+_write_lock = threading.Lock()
+
+
+def get_write_lock() -> threading.Lock:
+    """Return the shared in-process write lock for the task store. [FR-02]
+
+    Citations: SPEC.md lines FR-02 `--all` concurrency invariant.
+    """
+
+    return _write_lock
 
 
 def _empty_state() -> dict:

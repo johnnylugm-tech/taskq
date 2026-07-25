@@ -1,7 +1,7 @@
 """Command-line interface for taskq.
 
-[FR-01]
-Citations: SPEC.md lines 55-72, 102-115, 161-165.
+[FR-01, FR-02]
+Citations: SPEC.md lines 55-72, 102-115, 161-165 (FR-01); FR-02 subcommand.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import os
 import sys
 from typing import Sequence
 
-from . import config, store
+from . import config, executor, store
 
 # SPEC.md §3 FR-01: seven injection characters must never appear in a
 # submitted command string.
@@ -20,6 +20,9 @@ _INJECTION_CHARACTERS = frozenset(";|&$><`")
 
 # Exit code returned for any validation failure (FR-01 invariant).
 _EXIT_VALIDATION_ERROR = 2
+
+# Exit code returned for a single-task run that produced a timeout (FR-02 AC-2.5).
+_EXIT_TIMEOUT = 4
 
 
 def _validation_error(message: str) -> int:
@@ -66,6 +69,26 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
     return 0
 
 
+def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
+    """Run one task by id or drain pending tasks with --all. [FR-02]
+
+    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5.
+    """
+
+    if args.all:
+        results = executor.run_all(cfg=cfg)
+        if any(task.get("status") == "timeout" for task in results):
+            return _EXIT_TIMEOUT
+        return 0
+    if not args.id:
+        print("run requires a task id or --all", file=sys.stderr)
+        return _EXIT_VALIDATION_ERROR
+    task = executor.run_task(args.id, cfg=cfg)
+    if task.get("status") == "timeout":
+        return _EXIT_TIMEOUT
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="taskq")
     parser.add_argument("--json", action="store_true", dest="json_output")
@@ -75,6 +98,10 @@ def _build_parser() -> argparse.ArgumentParser:
     submit.add_argument("--name")
     submit.add_argument("--json", action="store_true", dest="json_output")
     submit.set_defaults(handler=submit_command)
+    run = subparsers.add_parser("run")
+    run.add_argument("id", nargs="?")
+    run.add_argument("--all", action="store_true")
+    run.set_defaults(handler=run_command)
     return parser
 
 
