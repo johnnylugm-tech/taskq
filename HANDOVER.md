@@ -1,8 +1,8 @@
 # Harness Methodology — Session Handover
 
-**Checkpoint**: `P2-exit-20260724`  
-**Phase**: P2 — Architecture & Design  
-**Generated**: 2026-07-24T13:17:32Z
+**Checkpoint**: `P3-mid-20260725`  
+**Phase**: P3 — Implementation  
+**Generated**: 2026-07-25T14:21:59Z
 
 > ⚠️  **開始下一個工作階段前，請先執行 `/compact` 壓縮上下文**，再從「接下來的工作」繼續。
 
@@ -14,9 +14,9 @@
 # 1. Clone (if working directory cleared)
 git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq.git && cd taskq
 
-# 2. Read plan and start Phase 3
+# 2. Read plan and continue Phase 3
 cat .methodology/phase3_plan.md
-# Follow SKILL.md §0.1 Phase 3 entry check, then execute
+# Follow the active plan and continue from where you left off
 ```
 
 ---
@@ -31,7 +31,7 @@ git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq.git /tmp
 git log --oneline -3
 
 # Confirm FSM state
-cat .methodology/state.json   # expected: phase=3 state=RUNNING
+cat .methodology/state.json   # expected: phase=3 state=RUNNING last_gate=1 last_fr=FR-02
 
 # Read active plan
 cat .methodology/phase3_plan.md
@@ -41,66 +41,67 @@ cat .methodology/phase3_plan.md
 |------|----|
 | Remote | `https://github.com/johnnylugm-tech/taskq.git` |
 | Branch | `main` |
-| State | `phase=3 state=RUNNING` |
+| State | `phase=3 state=RUNNING last_gate=1 last_fr=FR-02` |
 | Plan | `.methodology/phase3_plan.md` |
 
 ---
 
 ## 任務背景
 
-P2 phase completed — pushed for record.
-
-
-## 交付物清單
-
-- `02-architecture/SAD.md` ✅ (408L)
+P3 Implementation in progress (≥50% milestone). 2/5 FRs done.
 
 ## 目前執行狀況
 
-5 FR(s) in quality manifest [FR-01,FR-02,FR-03,FR-04,FR-05]. 1/3 P2 deliverables present, Agent-B APPROVED.
+2/5 FRs Gate 1 PASS [FR-01,FR-02]. TDD cycles complete for passing FRs.
 
 **A/B Session Results:**
   - None / preflight-probe: **complete**
+  - FR-01 / developer: **ERROR**
+  - ? / tool:amend-sab: **COMPLETED**
+  - FR-02 / developer: **complete**
+  - FR-03 / developer: **complete**
+  - FR-04 / developer: **complete**
+  - FR-05 / developer: **complete**
 
 **Recently Committed Files:**
+  - `.methodology/.gate1_scores.json`
+  - `.methodology/decision_logs/2026-07-25/GATE_3_9bee2662.yaml`
+  - `.methodology/decision_logs/2026-07-25/GATE_3_ed22c748.yaml`
+  - `.methodology/effort_metrics.db`
   - `.methodology/fr_progress.json`
+  - `.methodology/gate1_result.json`
+  - `.methodology/gate_results/gate1/FR-02.json`
+  - `.methodology/gate_timestamps.jsonl`
+  - `.methodology/lessons/aef8b8aa91d2.md`
   - `.methodology/quality_manifest.json`
   - `.methodology/state.json`
-  - `00-summary/Phase2_STAGE_PASS.md`
+  - `00-summary/Phase3_STAGE_PASS.md`
   - `CLAUDE.md`
-  - `HANDOVER.md`
-  - `harness`
+  - `03-development/tests/test_fr02.py`
+  - `03-development/src/taskq/executor.py`
+  - `03-development/src/taskq/store.py`
+  - `03-development/src/taskq/cli.py`
+  - `.methodology/decision_logs/2026-07-25/GATE_3_e65da8d4.yaml`
+  - `.methodology/gate_results/gate1/FR-01.json`
   - `.methodology/SAB.json`
-  - `.methodology/agent_b_approvals/ADR.md.json`
-  - `.methodology/agent_b_approvals/SAD.md.json`
-  - `.methodology/agent_b_approvals/TEST_SPEC.md.json`
-  - `.methodology/trace/attestation.json`
-  - `02-architecture/SAD.md`
-  - `02-architecture/TEST_SPEC.md`
-  - `02-architecture/adr/ADR.md`
-  - `00-summary/Phase1_STAGE_PASS.md`
-  - `.methodology/.state.lock`
-  - `.methodology/agent_b_approvals/SPEC_TRACKING.md.json`
-  - `.methodology/agent_b_approvals/SRS.md.json`
-  - `.methodology/agent_b_approvals/TEST_INVENTORY.yaml.json`
 
 ## 接下來的工作
 
-1. Open `.methodology/phase3_plan.md` and follow from the top
-2. Implement each FR with TDD (Gate 1 target per FR ≥75)
-3. Push P3-mid checkpoint at ≥50 % FR Gate 1 PASS
-4. Push P3-pre-gate2 checkpoint when all FRs done
+1. Complete remaining 3 FR(s): FR-03, FR-04, FR-05
+2. Ensure each FR has passing unit tests (TDD)
+3. When all FRs done → `push-milestone --type p3-pre-gate2`
 
 ## 注意事項
 
 - 100% follow SKILL.md
 - Do NOT commit `.sessi-work/` or `.methodology/` runtime artifacts
 - Git failures are warnings — they never block the pipeline
-- Phase checkpoint push
 
 ## 附加資訊
 
-- **fr_count**: 5
+- **fr_done**: 2
+- **fr_total**: 5
+- **remaining_frs**: FR-03, FR-04, FR-05
 
 ---
 *由 `HandoverGenerator` 自動生成。下次 push 時此檔案將被覆寫。*
