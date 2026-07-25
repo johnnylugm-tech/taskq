@@ -239,7 +239,7 @@ def test_result_record_fields(taskq_home):
     """
     stdout_len = "2500"
     expected_tail_len = "2000"
-    assert int(stdout_len) > int(expected_tail_len)  # AC23-tail-truncated
+    assert stdout_len > expected_tail_len  # AC23-tail-truncated
     # `python3 -c '...'` writes 2500 'a' chars to stdout (no trailing newline).
     command = "python3 -c 'import sys; sys.stdout.write(\"a\" * 2500)'"
     _seed_pending(taskq_home, "dddddddd", command)
@@ -266,6 +266,7 @@ def test_result_record_fields(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-09: scalability — bounded workers must process run --all without loss
 # NP-13: AC-NFR13.2 — bounded concurrent workers preserve all persisted tasks
 def test_run_all_concurrent(taskq_home):
     """AC-2.4: --all drains pending tasks through max_workers parallel runners.
@@ -297,7 +298,7 @@ def test_run_all_concurrent(taskq_home):
 # ---------------------------------------------------------------------------
 
 
-# NFR-15: AC-NFR15.1 — timeout surfaces as exit code 4 in single-task mode
+# NP-15: AC-NFR15.1 — timeout surfaces as exit code 4 in single-task mode
 def test_timeout_exit_code_4(taskq_home):
     """AC-2.5: single-task run that produces a timeout result exits with code 4.
 
@@ -614,6 +615,7 @@ def test_fr02_output_feeds_fr03_retry_pipeline(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-05: maintainability — executor public APIs require [FR-02] docstrings
 # NFR-02: AC-NFR02.3 — production source scan asserts shell_flag absent
 def test_no_shell_true_in_source():
     """AC-2.1 (NP-08/NP-04 SEC:T-02): no shell=True in production source.
