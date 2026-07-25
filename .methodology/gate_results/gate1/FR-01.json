@@ -1,0 +1,31 @@
+{
+  "gate": 1,
+  "phase": 3,
+  "fr_id": "FR-01",
+  "overall_score": 96.73,
+  "quality_complete": true,
+  "rounds_used": 1,
+  "breakdown": {
+    "linting": {
+      "score": 100,
+      "threshold": 100,
+      "tool_evidence": "All checks passed!"
+    },
+    "type_safety": {
+      "score": 100,
+      "threshold": 100,
+      "tool_evidence": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 5, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.223}}"
+    },
+    "test_coverage": {
+      "score": 90,
+      "threshold": 80,
+      "tests_passed": 17,
+      "tests_failed": 0,
+      "tests_skipped": 0,
+      "tool_evidence": "17 passed in 0.32s; coverage 90.38% on 03-development/src/taskq/cli.py (47/52 statements covered, missing lines 91-95 in main())"
+    }
+  },
+  "composite_score": 96.73,
+  "verdict": "PASS",
+  "passed": true
+}
