@@ -68,7 +68,8 @@
         },
         {
           "name": "taskq.models"
-        }
+        },
+        "taskq"
       ],
       "allowed_dependencies": []
     }
