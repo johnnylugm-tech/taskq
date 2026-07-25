@@ -32,6 +32,12 @@ def get_write_lock() -> threading.Lock:
     return _write_lock
 
 
+def utc_now_iso() -> str:
+    """Return the current UTC time as an ISO-8601 string with a ``Z`` suffix."""
+
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _empty_state() -> dict:
     return {"version": 1, "tasks": {}}
 
@@ -108,7 +114,7 @@ def _new_pending_record(command: str, name: str | None) -> dict:
         "command": command,
         "name": name,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "created_at": utc_now_iso(),
     }
 
 

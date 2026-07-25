@@ -11,7 +11,6 @@ import shlex
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 from pathlib import Path
 
 from . import config, store
@@ -47,10 +46,6 @@ def tail(text: str, length: int = _TAIL_LENGTH) -> str:
     if len(text) <= length:
         return text
     return text[-length:]
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _classify(result: dict) -> str:
@@ -141,7 +136,7 @@ def _persist_result(home: Path, task_id: str, result: dict) -> dict:
         task["stdout_tail"] = tail(redact(result["stdout"]))
         task["stderr_tail"] = tail(redact(result["stderr"]))
         task["duration_ms"] = result["duration_ms"]
-        task["finished_at"] = _now_iso()
+        task["finished_at"] = store.utc_now_iso()
         store.write_state(home, state)
         return task
 
