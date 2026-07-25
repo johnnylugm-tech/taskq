@@ -514,14 +514,14 @@ def test_secret_redaction_before_truncation(taskq_home):
     """NP-14/NP-08 (SEC:T-03): redaction must precede 2000-char truncation.
 
     Sub-assertions: AC28-redaction, AC28-boundary-tail.
-    Construct a 2010-char stdout stream where the secret begins at
+    Construct a 2014-char stdout stream where the secret begins at
     offset 1990 and protrudes past the 2000-char boundary. If the
     executor truncates BEFORE redacting, the persisted tail keeps the
     first 10 chars of the secret ("sk-abcdefgh"). If the executor
     redacts FIRST and THEN truncates, the secret is fully replaced
     with [REDACTED] and the tail is exactly 2000 chars.
     """
-    stdout_len = "2010"
+    stdout_len = "2014"
     secret_start_offset = "1990"
     secret_pattern = "sk-*"
     expected_redacted = "true"
@@ -537,9 +537,11 @@ def test_secret_redaction_before_truncation(taskq_home):
         f"constructed stream len {len(payload_str)} != {stdout_len}"
     )
     # python3 -c writes the exact string (no shell interpretation; safe chars).
+    # Use a double-quoted literal (payload has no quotes/backslashes) so the
+    # outer single-quoted -c argument survives shlex.split unbroken.
     command = (
         "python3 -c 'import sys; "
-        f"sys.stdout.write({payload_str!r})'"
+        f'sys.stdout.write("{payload_str}")\''
     )
     _seed_pending(taskq_home, "55555555", command)
     _run_inprocess(["run", "55555555"])
