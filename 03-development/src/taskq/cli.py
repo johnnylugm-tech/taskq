@@ -14,7 +14,19 @@ from typing import Sequence
 
 from . import config, store
 
+# SPEC.md §3 FR-01: seven injection characters must never appear in a
+# submitted command string.
 _INJECTION_CHARACTERS = frozenset(";|&$><`")
+
+# Exit code returned for any validation failure (FR-01 invariant).
+_EXIT_VALIDATION_ERROR = 2
+
+
+def _validation_error(message: str) -> int:
+    """Surface a validation rejection on stderr and return the FR-01 exit code."""
+
+    print(message, file=sys.stderr)
+    return _EXIT_VALIDATION_ERROR
 
 
 def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
@@ -25,14 +37,11 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
     command = args.command
     if not command.strip():
-        print("command must not be empty", file=sys.stderr)
-        return 2
+        return _validation_error("command must not be empty")
     if len(command) > 1000:
-        print("command must not exceed 1000 characters", file=sys.stderr)
-        return 2
+        return _validation_error("command must not exceed 1000 characters")
     if any(character in command for character in _INJECTION_CHARACTERS):
-        print("command contains a forbidden injection character", file=sys.stderr)
-        return 2
+        return _validation_error("command contains a forbidden injection character")
 
     if args.name is not None:
         state = store.read_state(cfg.home)
@@ -42,8 +51,7 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
             for task in state["tasks"].values()
         )
         if collision:
-            print(f"task name already active: {args.name}", file=sys.stderr)
-            return 2
+            return _validation_error(f"task name already active: {args.name}")
 
     record = store.add_task(cfg.home, command, args.name)
     if args.json_output:
@@ -78,11 +86,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     arguments = list(argv) if argv is not None else sys.argv[1:]
     fault_arguments = [arg for arg in arguments if arg.startswith("--inject-fault=")]
+    arguments = [arg for arg in arguments if not arg.startswith("--inject-fault=")]
     if fault_arguments:
-        arguments = [arg for arg in arguments if not arg.startswith("--inject-fault=")]
         if os.environ.get("TASKQ_INJECT_FAULT_OK") != "1":
             print("inject-fault rejected in production", file=sys.stderr)
-            return 2
+            return _EXIT_VALIDATION_ERROR
         print(f"fault injection triggered: {fault_arguments[-1].split('=', 1)[1]}", file=sys.stderr)
         return 1
 

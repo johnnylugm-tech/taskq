@@ -6,6 +6,7 @@ Citations: SPEC.md lines 68-72, 125, 130, 153-159.
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import tempfile
@@ -14,8 +15,6 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
-
-import fcntl
 
 
 def _empty_state() -> dict:
@@ -83,6 +82,21 @@ def write_state(home: Path, state: dict) -> None:
         _write_unlocked(home / "tasks.json", state)
 
 
+def _new_pending_record(command: str, name: str | None) -> dict:
+    """Build a fresh pending task record with a unique 8-hex id and UTC timestamp.
+
+    Citations: SPEC.md lines 68-72.
+    """
+
+    return {
+        "id": uuid.uuid4().hex[:8],
+        "command": command,
+        "name": name,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+
+
 def add_task(home: Path, command: str, name: str | None = None) -> dict:
     """Create and atomically persist a pending task record. [FR-01]
 
@@ -92,14 +106,7 @@ def add_task(home: Path, command: str, name: str | None = None) -> dict:
     with _locked(home, exclusive=True):
         path = home / "tasks.json"
         state = _read_unlocked(path)
-        task_id = uuid.uuid4().hex[:8]
-        record = {
-            "id": task_id,
-            "command": command,
-            "name": name,
-            "status": "pending",
-            "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        }
-        state["tasks"][task_id] = record
+        record = _new_pending_record(command, name)
+        state["tasks"][record["id"]] = record
         _write_unlocked(path, state)
         return record
