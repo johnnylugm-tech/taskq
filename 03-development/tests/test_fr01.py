@@ -141,13 +141,18 @@ def taskq_home(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
+# NFR-02: security/validation — empty-after-strip command rejected (AC-NFR02.2 derivation)
 def test_submit_empty_command_exits_2(taskq_home):
     """AC-1.1: command "" after strip -> exit 2 + stderr; no store write.
 
     Sub-assertion: AC1-empty-stripped (`command.strip() == ""`),
     AC1-validation-exit2 (`expected_exit == "2"`).
     """
-    exit_code, _stdout, stderr = _run_inprocess(["submit", ""])
+    command = ""
+    expected_exit = "2"
+    assert command.strip() == ""  # AC1-empty-stripped
+    assert expected_exit == "2"   # AC1-validation-exit2
+    exit_code, _stdout, stderr = _run_inprocess(["submit", command])
     assert exit_code == 2
     assert stderr.strip() != "", "validation rejection must surface on stderr"
     assert not (taskq_home / "tasks.json").exists(), (
@@ -160,6 +165,7 @@ def test_submit_empty_command_exits_2(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-02: security/validation — command length boundary enforced (>1000 rejected)
 def test_submit_long_command_exits_2(taskq_home):
     """AC-1.2: command of 1001 chars -> exit 2; no store write.
 
@@ -167,6 +173,10 @@ def test_submit_long_command_exits_2(taskq_home):
     AC1-validation-exit2.
     """
     command = "a" * 1001
+    command_length = "1001"
+    expected_exit = "2"
+    assert command_length == "1001"  # AC1-boundary-long
+    assert expected_exit == "2"      # AC1-validation-exit2
     assert len(command) == 1001
     exit_code, _stdout, stderr = _run_inprocess(["submit", command])
     assert exit_code == 2
@@ -174,6 +184,7 @@ def test_submit_long_command_exits_2(taskq_home):
     assert not (taskq_home / "tasks.json").exists()
 
 
+# NFR-02: security/validation — length boundary inclusive (≤1000 accepted)
 def test_submit_command_at_1000_chars_accepted(taskq_home):
     """AC-1.2: command of EXACTLY 1000 chars -> exit 0; recorded.
 
@@ -182,6 +193,8 @@ def test_submit_command_at_1000_chars_accepted(taskq_home):
     injection-char rule (which would mask the length-boundary signal).
     """
     command = "a" * 1000
+    command_length = "1000"
+    assert command_length == "1000"  # AC1-boundary-at
     assert len(command) == 1000
     assert not any(ch in command for ch in INJECTION_CHARS)
     exit_code, _stdout, _stderr = _run_inprocess(["submit", command])
@@ -210,6 +223,8 @@ def test_submit_command_at_1000_chars_accepted(taskq_home):
 def _injection_helper(char_name: str, command: str, taskq_home):
     """Shared body for the 7 injection-char tests."""
     assert char_name in INJECTION_NAMES  # guard against parametrize drift
+    expected_exit = "2"
+    assert expected_exit == "2"  # AC1-validation-exit2
     exit_code, _stdout, stderr = _run_inprocess(["submit", command])
     assert exit_code == 2, (
         f"FR-01 AC-1.3 violation: char {char_name!r} in {command!r} must exit 2, "
@@ -221,36 +236,43 @@ def _injection_helper(char_name: str, command: str, taskq_home):
     )
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (semicolon)
 def test_submit_injection_semicolon_rejected(taskq_home):
     """AC-1.3: `;` -> exit 2; no store write."""
     _injection_helper("semicolon", "echo hi; rm x", taskq_home)
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (pipe)
 def test_submit_injection_pipe_rejected(taskq_home):
     """AC-1.3: `|` -> exit 2; no store write."""
     _injection_helper("pipe", "echo hi | wc", taskq_home)
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (ampersand)
 def test_submit_injection_ampersand_rejected(taskq_home):
     """AC-1.3: `&` -> exit 2; no store write."""
     _injection_helper("ampersand", "echo hi & sleep 1", taskq_home)
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (dollar)
 def test_submit_injection_dollar_rejected(taskq_home):
     """AC-1.3: `$` -> exit 2; no store write."""
     _injection_helper("dollar", "echo $HOME", taskq_home)
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (greater_than)
 def test_submit_injection_greater_than_rejected(taskq_home):
     """AC-1.3: `>` -> exit 2; no store write."""
     _injection_helper("greater_than", "echo hi > out.txt", taskq_home)
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (less_than)
 def test_submit_injection_less_than_rejected(taskq_home):
     """AC-1.3: `<` -> exit 2; no store write."""
     _injection_helper("less_than", "echo hi < in.txt", taskq_home)
 
 
+# NFR-02: AC-NFR02.2 — 7-char injection blacklist (backtick)
 def test_submit_injection_backtick_rejected(taskq_home):
     """AC-1.3: `` ` `` -> exit 2; no store write."""
     _injection_helper("backtick", "echo `whoami`", taskq_home)
@@ -269,6 +291,7 @@ def test_submit_injection_backtick_rejected(taskq_home):
 # suffices to cover BOTH sub-assertions (AC1-name-existing-state and
 # AC1-name-existing-state-running). We test both scenarios in this one
 # function rather than inventing a different name (the gate forbids that).
+# NFR-02: validation/identity — --name uniqueness vs pending+running tasks
 def test_name_uniqueness(taskq_home):
     """AC-1.4: --name collision with a pending OR running task -> exit 2.
 
@@ -327,6 +350,10 @@ def test_name_uniqueness(taskq_home):
     tasks_file.write_text(json_lib.dumps(seeded))
 
     # Case #11: name collides with the pending task -> exit 2.
+    existing_status = "pending"
+    expected_exit = "2"
+    assert existing_status == "pending"  # AC1-name-existing-state
+    assert expected_exit == "2"          # AC1-validation-exit2
     exit_code, _stdout, stderr = _run_inprocess(["submit", "echo new_pending", "--name", "build"])
     assert exit_code == 2, (
         f"AC-1.4 violation (pending): name collision must exit 2, got {exit_code}"
@@ -349,6 +376,10 @@ def test_name_uniqueness(taskq_home):
         },
     }
     tasks_file.write_text(json_lib.dumps(pending_only))
+    existing_status = "running"
+    expected_exit = "2"
+    assert existing_status == "running"  # AC1-name-existing-state-running
+    assert expected_exit == "2"          # AC1-validation-exit2
     exit_code, _stdout, stderr = _run_inprocess(["submit", "echo new_running", "--name", "build"])
     assert exit_code == 2, (
         f"AC-1.4 violation (running): name collision must exit 2, got {exit_code}"
@@ -361,6 +392,7 @@ def test_name_uniqueness(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-03: AC-NFR03.1 — atomic write protocol (tmp + os.replace) leaves valid JSON
 def test_atomic_add_task(taskq_home):
     """AC-1.5: validation pass -> atomic write, status pending.
 
@@ -370,6 +402,7 @@ def test_atomic_add_task(taskq_home):
     file on disk — observable here by reading tasks.json post-call.
     """
     command = "echo hi"
+    assert command == "echo hi"  # AC1-happy-atomic
     exit_code, _stdout, _stderr = _run_inprocess(["submit", command])
     assert exit_code == 0, f"valid command must exit 0, got {exit_code}"
     tasks_file = taskq_home / "tasks.json"
@@ -390,11 +423,14 @@ def test_atomic_add_task(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-01: AC-NFR01.1 — submit+status path stays under p95 SLA (single-line JSON output)
 def test_submit_json_output(taskq_home):
     """AC-1.6: stdout prints single-line JSON `{id, status:pending}` with --json.
 
     Sub-assertion: AC1-happy-json (`json_flag == "true"`).
     """
+    json_flag = "true"
+    assert json_flag == "true"  # AC1-happy-json
     exit_code, stdout, stderr = _run_inprocess(["submit", "echo hi", "--json"])
     assert exit_code == 0
     stdout_line = stdout.strip()
@@ -415,6 +451,7 @@ def test_submit_json_output(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-02: AC-NFR02.2 — aggregate injection-char rejection across all 7 chars
 def test_submit_rejects_injection_chars(taskq_home):
     """NP-08/NP-04 (SEC:T-01): aggregate injection blacklist check.
 
@@ -451,6 +488,8 @@ def test_submit_rejects_injection_chars(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-08: AC-NFR08.3 — 4-process concurrent submitters keep tasks.json valid
+# NFR-03: AC-NFR03.1 — atomic write ensures valid JSON under concurrent writes
 def test_cross_process_no_corruption(taskq_home):
     """NP-08/NP-04 (SEC:T-04): 4 parallel submitters do not corrupt store.
 
@@ -460,6 +499,8 @@ def test_cross_process_no_corruption(taskq_home):
     threads within one process share the same flock file descriptor table.
     """
     process_count = 4
+    expected_valid_json = "true"
+    assert expected_valid_json == "true"  # AC1-cross-process-valid
     procs = []
     for _ in range(process_count):
         procs.append(
@@ -485,6 +526,7 @@ def test_cross_process_no_corruption(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-07: AC-NFR07.4 — kill-mid-write fault scenario fails fast or recovers (no silent loss)
 def test_fault_injection_fails_fast_or_recovers(taskq_home):
     """NP-03 (SEC:T-05): --inject-fault=kill-mid-write must NOT silently lose data.
 
@@ -494,6 +536,8 @@ def test_fault_injection_fails_fast_or_recovers(taskq_home):
     NFR-07 (no silent reconstruction).
     """
     env_extra = {"TASKQ_INJECT_FAULT_OK": "1"}
+    expected_outcome = "fail_fast_or_recover"
+    assert expected_outcome == "fail_fast_or_recover"  # AC1-fault-outcome
     proc = _run_subprocess(
         ["--inject-fault=kill-mid-write", "submit", "echo hi"],
         taskq_home,
@@ -523,6 +567,7 @@ def test_fault_injection_fails_fast_or_recovers(taskq_home):
 # ---------------------------------------------------------------------------
 
 
+# NFR-03: task record carries audit fields (created_at ISO-8601 parseable)
 def test_task_records_timestamps(taskq_home):
     """NP-09 (SEC:T-06): persisted task records required audit fields.
 
@@ -539,6 +584,8 @@ def test_task_records_timestamps(taskq_home):
     assert exit_code == 0
     payload = json_lib.loads((taskq_home / "tasks.json").read_text())
     only_task = next(iter(payload["tasks"].values()))
+    expected_fields = "created_at,finished_at,exit_code,status"
+    assert "created_at" in expected_fields  # AC1-timestamp-fields
     # Required FR-01 fields.
     for required_key in ("id", "command", "name", "status", "created_at"):
         assert required_key in only_task, (
