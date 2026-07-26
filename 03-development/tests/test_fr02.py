@@ -382,7 +382,7 @@ def test_run_subprocess_orphan_cleanup_on_timeout(taskq_home):
     expected_process_state = "terminated"
     assert expected_process_state == "terminated"  # AC27-orphan-terminated
     _seed_pending(taskq_home, "ffffffff", command)
-    proc = _run_subprocess(
+    _run_subprocess(
         ["run", "ffffffff"], taskq_home,
         env_extra={"TASKQ_TASK_TIMEOUT": timeout_seconds},
         timeout=20,
@@ -644,3 +644,42 @@ def test_no_shell_true_in_source():
         assert not SHELL_TRUE_RE.search(text), (
             f"AC-2.1 violation: shell=True found in {file_path.relative_to(SRC_ROOT)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# FR-02 defensive branches
+# ---------------------------------------------------------------------------
+
+
+def test_decode_replaces_invalid_bytes():
+    """`executor._decode` decodes a `bytes` stream with `errors="replace"`
+    (the `subprocess.TimeoutExpired.stdout/stderr` fallback path)."""
+    assert executor._decode(b"hello") == "hello"
+    assert executor._decode(b"\xff\xfe") == "��"
+    assert executor._decode(None) == ""
+
+
+def test_apply_task_update_unknown_task_raises_keyerror(taskq_home):
+    """`executor._apply_task_update` raises KeyError when the task id is
+    absent from the store (defensive guard against a race/bad caller)."""
+    store.write_state(taskq_home, {"version": 1, "tasks": {}})
+    with pytest.raises(KeyError, match="task not found: missing"):
+        executor._apply_task_update(taskq_home, "missing", {})
+
+
+def test_cache_put_failure_is_fail_open(taskq_home, monkeypatch):
+    """NP-07: a `cache.put` failure after a successful run must not crash
+    `run_task` — the result is still persisted (fail-open on the write side)."""
+    from taskq import cache
+
+    def _boom(*_args, **_kwargs):
+        raise OSError("cache write unavailable")
+
+    monkeypatch.setattr(cache, "put", _boom)
+    _seed_pending(taskq_home, "77777777", "echo cache-write-fails")
+    cfg = config.load()
+    task = executor.run_task("77777777", cfg=cfg, use_cache=True)
+    assert task["status"] == "done", (
+        f"a cache.put failure must not prevent the task from completing, "
+        f"got status={task['status']!r}"
+    )

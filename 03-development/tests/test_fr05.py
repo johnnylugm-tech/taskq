@@ -541,3 +541,50 @@ def test_inject_fault_rejected_in_production(taskq_home, monkeypatch):
     assert "inject-fault rejected in production" in err, (
         f"NP-02: stderr must state the rejection reason, got {err!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# FR-05 defensive/plain-output branches
+# ---------------------------------------------------------------------------
+
+
+def test_inject_fault_triggered_when_opted_in(taskq_home, monkeypatch):
+    """`--inject-fault=...` with `TASKQ_INJECT_FAULT_OK=1` short-circuits
+    `cli.main` with exit 1 and the "triggered" stderr message, without
+    dispatching to the requested subcommand."""
+    monkeypatch.setenv("TASKQ_INJECT_FAULT_OK", "1")
+    code, _out, err = _run_inprocess(["--inject-fault=kill-mid-write", "submit", "echo hi"])
+    assert code == 1, f"opted-in fault injection must exit 1, got {code} ({err!r})"
+    assert "fault injection triggered: kill-mid-write" in err, (
+        f"stderr must report the triggered fault, got {err!r}"
+    )
+    assert not (taskq_home / "tasks.json").exists(), (
+        "triggered fault injection must short-circuit before the subcommand runs"
+    )
+
+
+def test_run_without_id_or_all_exits_2(taskq_home):
+    """`run` with neither `<id>` nor `--all` is a validation error (exit 2)."""
+    code, _out, err = _run_inprocess(["run"])
+    assert code == 2, f"`run` with no id/--all must exit 2, got {code} ({err!r})"
+    assert "run requires a task id or --all" in err, (
+        f"stderr must state the reason, got {err!r}"
+    )
+
+
+def test_status_and_list_plain_text_output(taskq_home):
+    """`status`/`list` without `--json` print the plain (non-JSON) record form."""
+    task_id = "cccccccc"
+    _seed_task(taskq_home, task_id, "echo plain")
+
+    code, out, err = _run_inprocess(["status", task_id])
+    assert code == 0, f"plain status must exit 0, got {code} ({err!r})"
+    with pytest.raises(json_lib.JSONDecodeError):
+        json_lib.loads(out.strip())
+    assert task_id in out
+
+    code, out, err = _run_inprocess(["list"])
+    assert code == 0, f"plain list must exit 0, got {code} ({err!r})"
+    with pytest.raises(json_lib.JSONDecodeError):
+        json_lib.loads(out.strip())
+    assert task_id in out

@@ -596,3 +596,58 @@ def test_task_records_timestamps(taskq_home):
     # created_at must be ISO-8601 (any timezone, but a parseable value).
     import datetime as _dt  # local alias to avoid stdlib shadowing
     _dt.datetime.fromisoformat(only_task["created_at"].replace("Z", "+00:00"))
+
+
+# ---------------------------------------------------------------------------
+# FR-01 defensive branches — store.py schema/write-failure paths
+# ---------------------------------------------------------------------------
+
+
+def test_read_unlocked_rejects_unsupported_schema(taskq_home):
+    """`store._read_unlocked` raises ValueError on a valid-JSON but
+    schema-invalid tasks.json (wrong version / non-dict tasks)."""
+    tasks_file = taskq_home / "tasks.json"
+    tasks_file.write_text(json_lib.dumps({"version": 2, "tasks": {}}))
+    with pytest.raises(ValueError, match="unsupported tasks store schema"):
+        store._read_unlocked(tasks_file)
+
+
+def test_write_unlocked_cleans_up_temp_file_on_failure(taskq_home, monkeypatch):
+    """`store._write_unlocked` unlinks its temp file and re-raises when the
+    write itself fails (e.g. `os.fsync` failure mid-write)."""
+    taskq_home.mkdir(exist_ok=True)
+    tasks_file = taskq_home / "tasks.json"
+
+    def _boom(*_args, **_kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(store.os, "fsync", _boom)
+    with pytest.raises(OSError, match="disk full"):
+        store._write_unlocked(tasks_file, {"version": 1, "tasks": {}})
+    leftover = list(taskq_home.glob(".tasks.*.tmp"))
+    assert leftover == [], f"temp file must be cleaned up on failure, found {leftover}"
+
+
+def test_write_unlocked_cleanup_tolerates_already_missing_temp_file(taskq_home, monkeypatch):
+    """`store._write_unlocked`'s cleanup swallows `FileNotFoundError` when the
+    temp file is already gone by the time the failure handler runs (e.g. a
+    concurrent cleanup), and still re-raises the original write failure."""
+    taskq_home.mkdir(exist_ok=True)
+    tasks_file = taskq_home / "tasks.json"
+    captured: dict = {}
+    real_mkstemp = store.tempfile.mkstemp
+
+    def _spy_mkstemp(*args, **kwargs):
+        descriptor, name = real_mkstemp(*args, **kwargs)
+        captured["name"] = name
+        return descriptor, name
+
+    monkeypatch.setattr(store.tempfile, "mkstemp", _spy_mkstemp)
+
+    def _boom(*_args, **_kwargs):
+        os.unlink(captured["name"])  # simulate the temp file already vanishing
+        raise OSError("disk full")
+
+    monkeypatch.setattr(store.os, "fsync", _boom)
+    with pytest.raises(OSError, match="disk full"):
+        store._write_unlocked(tasks_file, {"version": 1, "tasks": {}})

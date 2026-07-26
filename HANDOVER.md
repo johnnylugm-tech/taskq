@@ -67,3 +67,20 @@ Phase 3: 5/5 FRs Gate 1 PASS. Gate 2 (score=96.66) — quality_complete. Ready t
 
 ---
 *由 `HandoverGenerator` 自動生成。下次 push 時此檔案將被覆寫。*
+
+## Sync Blocked — manual push required
+
+The Phase 3 advance handover commit landed locally but `git push origin main` did not pass the pre-push hook:
+
+```
+erty_not_executed: FR-03 declares a property invariant but no property-based test (hypothesis @given / fast-check) executes it — an unverified invariant proves nothing
+   FR-04 property_not_executed: FR-04 declares a property invariant but no property-based test (hypothesis @given / fast-check) executes it — an unverified invariant proves nothing
+   [BLOCKED] Phase 4: 2 property issue(s)
+
+[PRE-FLIGHT] Reliability Lint (semgrep, vendored rules)
+   WARNING py-mkstemp-outside-try /Users/johnny/projects/taskq/03-development/src/taskq/store.py:86
+   [BLOCKED] 1 reliability finding(s) at phase 4
+```
+```
+
+Resolve the blocker(s) above, then run `git push origin main` manually. Do NOT use `--no-verify` without explicit human sign-off.

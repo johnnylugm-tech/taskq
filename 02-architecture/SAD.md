@@ -231,7 +231,6 @@ sab:
     - name: foundation
       modules:
         - name: "taskq.config"
-        - name: "taskq.models"
       allowed_dependencies: []
 
   allowed_dependencies:
