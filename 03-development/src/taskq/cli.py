@@ -13,7 +13,7 @@ import os
 import sys
 from typing import Sequence
 
-from . import breaker, config, executor, store
+from . import breaker, cache, config, executor, store
 
 # SPEC.md §3 FR-01: seven injection characters must never appear in a
 # submitted command string.
@@ -34,6 +34,18 @@ def _validation_error(message: str) -> int:
 
     print(message, file=sys.stderr)
     return _EXIT_VALIDATION_ERROR
+
+
+def _print_json(payload: object) -> None:
+    """Write `payload` to stdout as single-line JSON (FR-05 `--json` contract)."""
+
+    sys.stdout.write(json.dumps(payload, separators=(",", ":")))
+
+
+def _add_json_flag(subparser: argparse.ArgumentParser) -> None:
+    """Register the per-subcommand `--json` override used by all FR-05 subcommands."""
+
+    subparser.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
 
 
 def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
@@ -62,12 +74,7 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
     record = store.add_task(cfg.home, command, args.name)
     if args.json_output:
-        sys.stdout.write(
-            json.dumps(
-                {"id": record["id"], "status": "pending"},
-                separators=(",", ":"),
-            )
-        )
+        _print_json({"id": record["id"], "status": "pending"})
     else:
         print(record["id"])
     return 0
@@ -125,7 +132,7 @@ def status_command(args: argparse.Namespace, cfg: config.Config) -> int:
         print(f"unknown task: {args.id}", file=sys.stderr)
         return _EXIT_VALIDATION_ERROR
     if args.json_output:
-        sys.stdout.write(json.dumps(task, separators=(",", ":")))
+        _print_json(task)
     else:
         print(task)
     return 0
@@ -142,7 +149,7 @@ def list_command(args: argparse.Namespace, cfg: config.Config) -> int:
     if args.status is not None:
         tasks = [task for task in tasks if task.get("status") == args.status]
     if args.json_output:
-        sys.stdout.write(json.dumps(tasks, separators=(",", ":")))
+        _print_json(tasks)
     else:
         for task in tasks:
             print(task)
@@ -155,11 +162,11 @@ def clear_command(args: argparse.Namespace, cfg: config.Config) -> int:
     Citations: SPEC.md §3 FR-05 subcommand table (AC-5.1, AC-5.5).
     """
 
-    store.write_state(cfg.home, {"version": 1, "tasks": {}})
-    breaker.save(cfg.home, {"version": 1, "state": "CLOSED", "failure_count": 0, "opened_at": None})
-    store._write_unlocked(cfg.home / "cache.json", {"version": 1, "entries": {}})
+    store.write_state(cfg.home, store._empty_state())
+    breaker.save(cfg.home, breaker._default_state())
+    cache.clear(cfg.home)
     if args.json_output:
-        sys.stdout.write(json.dumps({"cleared": True}, separators=(",", ":")))
+        _print_json({"cleared": True})
     else:
         print("cleared")
     return 0
@@ -172,24 +179,24 @@ def _build_parser() -> argparse.ArgumentParser:
     submit = subparsers.add_parser("submit")
     submit.add_argument("command")
     submit.add_argument("--name")
-    submit.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    _add_json_flag(submit)
     submit.set_defaults(handler=submit_command)
     run = subparsers.add_parser("run")
     run.add_argument("id", nargs="?")
     run.add_argument("--all", action="store_true")
     run.add_argument("--cached", action="store_true")
-    run.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    _add_json_flag(run)
     run.set_defaults(handler=run_command)
     status = subparsers.add_parser("status")
     status.add_argument("id")
-    status.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    _add_json_flag(status)
     status.set_defaults(handler=status_command)
     list_parser = subparsers.add_parser("list")
     list_parser.add_argument("--status", dest="status")
-    list_parser.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    _add_json_flag(list_parser)
     list_parser.set_defaults(handler=list_command)
     clear = subparsers.add_parser("clear")
-    clear.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    _add_json_flag(clear)
     clear.set_defaults(handler=clear_command)
     return parser
 

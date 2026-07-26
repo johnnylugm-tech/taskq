@@ -78,6 +78,16 @@ def lookup(home: Path, sig: str, ttl_seconds: float) -> dict | None:
         return None
 
 
+def clear(home: Path) -> None:
+    """Empty `$TASKQ_HOME/cache.json` under the cache's own lock. [FR-05]
+
+    Citations: SPEC.md §3 FR-05 subcommand table (`clear`, AC-5.1).
+    """
+
+    with _locked(home):
+        store._write_unlocked(home / _CACHE_FILE, _empty_state())
+
+
 def put(home: Path, sig: str, result: dict) -> None:
     """Atomically merge one entry into `$TASKQ_HOME/cache.json`. [FR-04]
 
