@@ -163,7 +163,7 @@ def clear_command(args: argparse.Namespace, cfg: config.Config) -> int:
     """
 
     store.write_state(cfg.home, store._empty_state())
-    breaker.save(cfg.home, breaker._default_state())
+    breaker.reset(cfg.home)
     cache.clear(cfg.home)
     if args.json_output:
         _print_json({"cleared": True})

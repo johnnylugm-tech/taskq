@@ -69,6 +69,19 @@ def save(home: Path, state: dict) -> None:
     store._write_unlocked(home / _BREAKER_FILE, state)
 
 
+def reset(home: Path) -> dict:
+    """Persist the default CLOSED state under the breaker's flock. [FR-05]
+
+    Public helper so callers outside `taskq.breaker` (e.g. `clear_command`)
+    cannot bypass the lock by calling `save` directly — routes every reset
+    through `breaker._locked`.
+    """
+    with _locked(home):
+        default = _default_state()
+        save(home, default)
+        return default
+
+
 def record_failure(home: Path, cfg: config.Config) -> dict:
     """Increment the consecutive final-failure counter; open on threshold. [FR-03]
 
