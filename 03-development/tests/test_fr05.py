@@ -588,3 +588,34 @@ def test_status_and_list_plain_text_output(taskq_home):
     with pytest.raises(json_lib.JSONDecodeError):
         json_lib.loads(out.strip())
     assert task_id in out
+
+
+def test_version_field_invariant(taskq_home):
+    """Persisted task state always uses schema version 1."""
+    store.write_state(taskq_home, store._empty_state())
+    assert store.read_state(taskq_home)["version"] == 1
+
+
+def test_v2_refuses(taskq_home):
+    """A future task-store schema is rejected rather than silently migrated."""
+    taskq_home.mkdir(parents=True, exist_ok=True)
+    (taskq_home / "tasks.json").write_text(json_lib.dumps({"version": 2, "tasks": {}}))
+    code, _out, err = _run_inprocess(["list"])
+    assert code == 1
+    assert "unsupported tasks store schema" in err
+
+
+def test_posix_flock(taskq_home):
+    """The POSIX task lock is created and held for the operation body."""
+    with store._locked(taskq_home, exclusive=True):
+        assert (taskq_home / "tasks.lock").exists()
+
+
+def test_atomic_write_three_files(taskq_home):
+    """Tasks, breaker, and cache each persist valid versioned JSON roots."""
+    store.write_state(taskq_home, store._empty_state())
+    breaker.save(taskq_home, breaker._default_state())
+    cache.put(taskq_home, cache.signature("echo hi"), {"status": "done"})
+    for filename in ("tasks.json", "breaker.json", "cache.json"):
+        payload = json_lib.loads((taskq_home / filename).read_text())
+        assert payload["version"] == 1

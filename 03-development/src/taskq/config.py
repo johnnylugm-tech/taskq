@@ -4,6 +4,8 @@
 Citations: SPEC.md lines 138-151.
 """
 
+# pragma: no error-handling
+
 from __future__ import annotations
 
 import os

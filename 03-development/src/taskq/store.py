@@ -93,13 +93,12 @@ def _write_unlocked(path: Path, state: dict) -> None:
             target.flush()
             os.fsync(target.fileno())
         os.replace(temporary_name, path)
-    except BaseException:
+    finally:
         if temporary_name is not None:
             try:
                 os.unlink(temporary_name)
             except FileNotFoundError:
                 pass
-        raise
 
 
 def read_state(home: Path) -> dict:

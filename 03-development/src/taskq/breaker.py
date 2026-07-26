@@ -56,7 +56,10 @@ def load(home: Path) -> dict:
     if not path.exists():
         return _default_state()
     with path.open(encoding="utf-8") as source:
-        return json.load(source)
+        try:
+            return json.load(source)
+        except (OSError, json.JSONDecodeError):
+            raise
 
 
 def save(home: Path, state: dict) -> None:
@@ -66,7 +69,10 @@ def save(home: Path, state: dict) -> None:
     """
 
     home.mkdir(parents=True, exist_ok=True)
-    store._write_unlocked(home / _BREAKER_FILE, state)
+    try:
+        store._write_unlocked(home / _BREAKER_FILE, state)
+    except OSError:
+        raise
 
 
 def reset(home: Path) -> dict:

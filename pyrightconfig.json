@@ -1,0 +1,10 @@
+{
+  "include": ["03-development/src"],
+  "exclude": ["harness", ".venv", "03-development/tests"],
+  "executionEnvironments": [
+    {
+      "root": "03-development/src",
+      "extraPaths": ["03-development/src"]
+    }
+  ]
+}

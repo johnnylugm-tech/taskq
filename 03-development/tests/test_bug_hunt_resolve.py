@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import contextlib
 import io
-import json as json_lib
 import sys
 from pathlib import Path
 
@@ -17,7 +16,7 @@ import pytest
 SRC_ROOT = Path(__file__).resolve().parent.parent / "src"
 sys.path.insert(0, str(SRC_ROOT))
 
-from taskq import breaker, cli, store  # noqa: E402
+from taskq import breaker, cli  # noqa: E402
 
 
 @pytest.fixture
