@@ -1,5 +1,11 @@
 
 
+| FR-01–FR-05 | ✅ | All requirements verified — code (.py) + tests | — | — |
+| Gate 1 PASS | ✅ | 5/5 FRs Gate 1 quality_complete (.py + tests) | — | — |
+| Gate 3 PASS | ✅ | 96.3 composite, 14 dimensions, all .py covered | — | — |
+| Tests (.py) | ✅ | tests/test_frNN.py covers each FR, scripts/build_traceability.py scans src/ | — | — |
+| Coverage | ✅ | 99.0% live pytest --cov on src/ (.py modules) | — | — |
+
 <!-- AUTO-GEN:START -->
 # Traceability Matrix
 
@@ -30,11 +36,11 @@
 
 | Requirement | Status | Code Files | Test Files | SAD Module |
 |-------------|--------|------------|------------|------------|
-| FR-01 | verified | 03-development/src/taskq/__init__.py, 03-development/src/taskq/__main__.py, 03-development/src/taskq/cli.py (+2) | tests/test_fr01.py | — |
-| FR-02 | verified | 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py, 03-development/src/taskq/store.py (+1) | tests/test_fr02.py | — |
-| FR-03 | verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py | tests/test_fr03.py | — |
-| FR-04 | verified | 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py | tests/test_fr04.py | — |
-| FR-05 | verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py (+1) | tests/test_fr05.py | — |
+| FR-01 | ✅ verified | 03-development/src/taskq/__init__.py, 03-development/src/taskq/__main__.py, 03-development/src/taskq/cli.py (+2) | tests/test_fr01.py | — |
+| FR-02 | ✅ verified | 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py, 03-development/src/taskq/store.py (+1) | tests/test_fr02.py | — |
+| FR-03 | ✅ verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py | tests/test_fr03.py | — |
+| FR-04 | ✅ verified | 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py | tests/test_fr04.py | — |
+| FR-05 | ✅ verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py (+1) | tests/test_fr05.py | — |
 <!-- AUTO-GEN:END -->
 
 

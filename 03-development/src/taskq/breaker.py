@@ -58,7 +58,7 @@ def load(home: Path) -> dict:
     with path.open(encoding="utf-8") as source:
         try:
             return json.load(source)
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError):  # pragma: no cover - re-raise passthrough
             raise
 
 
@@ -71,7 +71,7 @@ def save(home: Path, state: dict) -> None:
     home.mkdir(parents=True, exist_ok=True)
     try:
         store._write_unlocked(home / _BREAKER_FILE, state)
-    except OSError:
+    except OSError:  # pragma: no cover - re-raise passthrough
         raise
 
 

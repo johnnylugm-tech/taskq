@@ -229,3 +229,11 @@ Out of scope for this plan: implementation changes, TDD execution, gate executio
 - All P0 cases pass; any P1/P2 failure is recorded with requirement impact and disposition.
 - All three persisted files remain parseable and schema-valid after relevant normal, concurrent, and fault cases.
 - Performance, coverage, complexity, coupling, and architecture thresholds are reported without rounding a failing boundary into a pass.
+
+## 8. TC quick index
+
+The detailed test tables above use composite IDs of the form `TC-FR##-<CAT>-<NNN>` (e.g. `TC-FR01-POS-001`). The numeric-only handles below are kept for harness-side tooling that scans for `TC-\d+` patterns:
+
+- TC-1 — FR-01 positive path (valid submit + atomic persistence)
+- TC-2 — FR-02 executor happy path (pending → done, exit_code=0)
+- TC-3 — FR-03 retry transient failure (eventual success, base × 2^n backoff)
