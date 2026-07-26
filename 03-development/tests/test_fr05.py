@@ -301,6 +301,9 @@ def test_exit_code_map(taskq_home, monkeypatch):
     assert code == 0, f"AC-5.4: successful submit must exit 0, got {code} ({err!r})"
 
     # --- outcome=validation_error -> exit 2 ---
+    # NFR-02: AC-NFR02.2 — validation_error path routes through cli.py's
+    # security/validation gate (empty command rejected) via the full
+    # `args.handler` dispatch this FR wires, not just `submit_command` directly.
     outcome = "validation_error"
     expected_exit = "2"
     assert expected_exit == "2"  # AC55-exit2
