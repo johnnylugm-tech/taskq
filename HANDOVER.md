@@ -1,8 +1,8 @@
 # Harness Methodology — Session Handover
 
-**Checkpoint**: `P4-pre-gate3-20260726`  
-**Phase**: P4 — Testing  
-**Generated**: 2026-07-26T16:10:19Z
+**Checkpoint**: `P5-entry-20260726`  
+**Phase**: P5 — Review Baseline  
+**Generated**: 2026-07-26T16:43:28Z
 
 > ⚠️  **開始下一個工作階段前，請先執行 `/compact` 壓縮上下文**，再從「接下來的工作」繼續。
 
@@ -14,8 +14,8 @@
 # 1. Clone (if working directory cleared)
 git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq.git && cd taskq
 
-# 2. Read plan and continue Phase 4
-cat .methodology/phase4_plan.md
+# 2. Read plan and continue Phase 5
+cat .methodology/phase5_plan.md
 # Follow the active plan and continue from where you left off
 ```
 
@@ -31,75 +31,49 @@ git clone --recurse-submodules https://github.com/johnnylugm-tech/taskq.git /tmp
 git log --oneline -3
 
 # Confirm FSM state
-cat .methodology/state.json   # expected: phase=4 state=RUNNING last_gate=3
+cat .methodology/state.json   # expected: phase=5 state=RUNNING last_gate=3 last_fr=FR-05
 
 # Read active plan
-cat .methodology/phase4_plan.md
+cat .methodology/phase5_plan.md
 ```
 
 | 欄位 | 值 |
 |------|----|
 | Remote | `https://github.com/johnnylugm-tech/taskq.git` |
 | Branch | `main` |
-| State | `phase=4 state=RUNNING last_gate=3` |
-| Plan | `.methodology/phase4_plan.md` |
+| State | `phase=5 state=RUNNING last_gate=3 last_fr=FR-05` |
+| Plan | `.methodology/phase5_plan.md` |
 
 ---
 
 ## 任務背景
 
-P4 Testing complete. Gate 3 not yet executed.
+Phase 4 complete (5/5 FRs Gate 1 PASS). Gate 3 (score=96.3). Advancing to Phase 5.
+
+
+## P5 Entry Obligations
+
+> ⚠️ The following preflight findings would BLOCK entry to Phase 5. Resolve them before running the phase, otherwise the gate will fail.
+
+| Check | Rule | Location | Message |
+|-------|------|----------|---------|
+| `reliability_lint` | `py-pragma-no-cover` | `03-development/src/taskq/breaker.py:61` | WARNING py-pragma-no-cover 03-development/src/taskq/breaker.py:61 — resolve before entering the target phase |
+| `reliability_lint` | `py-pragma-no-cover` | `03-development/src/taskq/breaker.py:74` | WARNING py-pragma-no-cover 03-development/src/taskq/breaker.py:74 — resolve before entering the target phase |
 
 ## 目前執行狀況
 
-All 5 FR(s) Gate 1 re-eval PASS [FR-01,FR-02,FR-03,FR-04,FR-05]. Gate 3 (14 dims) not yet started.
-
-**A/B Session Results:**
-  - None / preflight-probe: **complete**
-  - FR-01 / developer: **ERROR**
-  - ? / tool:amend-sab: **COMPLETED**
-  - FR-02 / developer: **complete**
-  - FR-03 / developer: **complete**
-  - FR-04 / developer: **complete**
-  - FR-05 / developer: **complete**
-
-**Recently Committed Files:**
-  - `.methodology/state.json`
-  - `01-requirements/TRACEABILITY_MATRIX.md`
-  - `HANDOVER.md`
-  - `.methodology/crg_baseline_p4.json`
-  - `.methodology/decision_logs/2026-07-26/GATE_4_204e6a02.yaml`
-  - `.methodology/decision_logs/2026-07-26/GATE_4_8f2036a5.yaml`
-  - `.methodology/decision_logs/2026-07-26/GATE_4_bd7aeb87.yaml`
-  - `.methodology/decision_logs/2026-07-26/GATE_4_f65bff38.yaml`
-  - `.methodology/effort_metrics.db`
-  - `.methodology/gate3_result.json`
-  - `.methodology/gate_timestamps.jsonl`
-  - `.methodology/harness_config.json`
-  - `.methodology/lessons/ca7a2bc3e2dc.md`
-  - `.methodology/quality_manifest.json`
-  - `00-summary/Phase4_STAGE_PASS.md`
-  - `03-development/src/taskq/breaker.py`
-  - `03-development/src/taskq/config.py`
-  - `03-development/src/taskq/store.py`
-  - `03-development/tests/test_bug_hunt_resolve.py`
-  - `03-development/tests/test_fr05.py`
+Phase 4: 5/5 FRs Gate 1 PASS. Gate 3 (score=96.3) — quality_complete. P5 entry has 2 obligation(s) to resolve — see below.
 
 ## 接下來的工作
 
-1. Run Gate 3 evaluation (14 dims, target score ≥ 80)
-2. Fix any failures during evaluation
-3. On Gate 3 PASS → `finalize-gate --gate 3` handles push + HANDOVER
+1. Follow SKILL.md §0.1 Phase 5 entry checklist
+2. Read the Phase 5 plan and execute
 
 ## 注意事項
 
 - 100% follow SKILL.md
 - Do NOT commit `.sessi-work/` or `.methodology/` runtime artifacts
 - Git failures are warnings — they never block the pipeline
-
-## 附加資訊
-
-- **fr_count**: 5
 
 ---
 *由 `HandoverGenerator` 自動生成。下次 push 時此檔案將被覆寫。*
