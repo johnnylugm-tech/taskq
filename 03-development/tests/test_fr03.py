@@ -284,6 +284,7 @@ def test_breaker_open_refuses_exit_3(taskq_home, monkeypatch):
 
 
 # NP-15: cooldown-expired OPEN admits exactly one HALF_OPEN probe task
+# NFR-03: AC-NFR03.3 — breaker recovery (OPEN -> HALF_OPEN) is bounded by cooldown
 def test_breaker_half_open_probe(taskq_home, monkeypatch):
     """AC-3.4: after cooldown, one probe task decides CLOSED (success) or OPEN (failure).
 
