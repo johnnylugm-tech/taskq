@@ -3,7 +3,7 @@
 Generated: 2026-07-26 13:15 UTC
 
 ## Gate Score
-Gate 1 Composite Score: **95.63**
+Gate 1 Composite Score: **95.4**
 
 ## Quality Status
 quality_complete: **False**
