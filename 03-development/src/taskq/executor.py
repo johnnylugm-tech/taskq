@@ -234,8 +234,8 @@ def run_task(
         command = state["tasks"][task_id]["command"]
         store.write_state(home, state)
 
-    if use_cache:
-        sig = cache.signature(command)
+    sig = cache.signature(command) if use_cache else None
+    if sig is not None:
         try:
             cached = cache.lookup(home, sig, cfg.cache_ttl)
         except Exception:
@@ -253,7 +253,7 @@ def run_task(
         breaker.record_failure(home, cfg)
     else:
         breaker.record_success(home)
-        if use_cache:
+        if sig is not None:
             try:
                 cache.put(
                     home,
