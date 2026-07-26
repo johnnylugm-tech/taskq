@@ -376,14 +376,14 @@ proves the wiring is real, not just unit-testable in isolation:
      inside an FR entry above (or is a project-wide static scan), so no
      separate Integration-level NFR Integration table is authored for them. -->
 
-| # | NFR | Test Function | Layer | Title |
-|---|-----|----------------|-------|-------|
-| 1 | NFR-02 | `test_shell_true_grep_zero_matches` | unit | Repository-wide source scan confirms zero `shell=True` call sites (FR-02 case 1). |
-| 2 | NFR-02 | `test_submit_injection_*_rejected` (×7) | unit | Each of the 7 injection characters has a dedicated negative unit test (FR-01 cases 4-10). |
-| 3 | NFR-04 | `test_sk_token_redacted`, `test_token_equals_redacted`, `test_sk_token_redacted_stderr`, `test_token_equals_redacted_stderr`, `test_secret_redaction_before_truncation` | unit | `sk-*`/`token=` secret lines are redacted before persistence on both stdout and stderr streams, including a counterexample where the secret straddles the 2000-char tail boundary (FR-02 cases 11-15, SEC T-03). |
-| 4 | NFR-05 | `test_docstring_fr_xx_tag_coverage` | static | Every public function/class docstring carries an `[FR-XX]` tag. |
-| 5 | NFR-06 | `test_config_reads_all_8_env_vars_with_defaults` | unit | `config.py` exposes all 8 `TASKQ_*` readers with documented defaults. |
-| 6 | NFR-06 | `test_env_example_declares_all_8_vars` | static | `.env.example` declares all 8 `TASKQ_*` variables with a comment. |
+| # | Test Function | Type | Derivation |
+|---|---|---|---|
+| 1 | `test_shell_true_grep_zero_matches` | unit | NFR-02: repository-wide source scan confirms zero `shell=True` call sites (FR-02 case 1). |
+| 2 | `test_submit_injection_semicolon_rejected` | unit | NFR-02: representative of the 7 dedicated injection-character negative unit tests (FR-01 cases 4-10); see FR-01 table for the other 6. |
+| 3 | `test_sk_token_redacted` | unit | NFR-04: representative of the secret-redaction test set (`test_token_equals_redacted`, `test_sk_token_redacted_stderr`, `test_token_equals_redacted_stderr`, `test_secret_redaction_before_truncation`) covering both stdout/stderr streams and the truncation-boundary counterexample (FR-02 cases 11-15, SEC T-03); see FR-02 table for the others. |
+| 4 | `test_docstring_fr_xx_tag_coverage` | static | NFR-05: every public function/class docstring carries an `[FR-XX]` tag. |
+| 5 | `test_config_reads_all_8_env_vars_with_defaults` | unit | NFR-06: `config.py` exposes all 8 `TASKQ_*` readers with documented defaults. |
+| 6 | `test_env_example_declares_all_8_vars` | static | NFR-06: `.env.example` declares all 8 `TASKQ_*` variables with a comment. |
 
 ### Deployment Smoke
 

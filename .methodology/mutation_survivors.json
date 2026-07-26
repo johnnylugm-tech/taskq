@@ -1,0 +1,7 @@
+{
+  "generated_at": "2026-07-26T02:54:37.043888+00:00",
+  "tool": "mutmut",
+  "survivor_count": 0,
+  "survivors": [],
+  "raw": "To apply a mutant on disk:\n    mutmut apply <id>\n\nTo show a mutant:\n    mutmut show <id>\n\n\nSurvived 🙁 (14)\n\n---- /Users/johnny/projects/taskq/03-development/src/taskq/breaker.py (4) ----\n\n57, 59-60, 76\n\n---- /Users/johnny/projects/taskq/03-development/src/taskq/store.py (10) ----\n\n2, 8, 11, 23-26, 32, 35, 45\n\nUntested/skipped (376)\n\n---- /Users/johnny/projects/taskq/03-development/src/taskq/breaker.py (33) ----\n\n79-111\n\n---- /Users/johnny/projects/taskq/03-development/src/taskq/cache.py (50) ----\n\n112-161\n\n---- /Users/johnny/projects/taskq/03-development/src/taskq/cli.py (136) ----\n\n162-297\n\n---- /Users/johnny/projects/taskq/03-development/src/taskq/executor.py (157) ----\n\n298-454"
+}
