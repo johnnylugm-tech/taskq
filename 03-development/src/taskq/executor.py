@@ -119,10 +119,11 @@ def _run_subprocess(command: str, timeout: float) -> dict:
     }
 
 
-def _persist_result(home: Path, task_id: str, result: dict) -> dict:
-    """Atomically write the outcome of one task under the shared write lock. [FR-02]
+def _apply_task_update(home: Path, task_id: str, updates: dict) -> dict:
+    """Atomically merge `updates` into one task's state under the write lock.
 
-    Citations: SPEC.md lines FR-02 state machine + AC-2.3 result fields.
+    Shared by `_persist_result` (FR-02) and `_persist_cached_result` (FR-04),
+    which differ only in the fields they compute.
     """
 
     with store.get_write_lock():
@@ -130,16 +131,31 @@ def _persist_result(home: Path, task_id: str, result: dict) -> dict:
         task = state["tasks"].get(task_id)
         if task is None:
             raise KeyError(f"task not found: {task_id}")
-        task["status"] = _classify(result)
-        task["exit_code"] = result["exit_code"]
-        # NFR-04: redact on the FULL stream before truncating so secrets
-        # straddling the 2000-char boundary cannot leak.
-        task["stdout_tail"] = tail(redact(result["stdout"]))
-        task["stderr_tail"] = tail(redact(result["stderr"]))
-        task["duration_ms"] = result["duration_ms"]
+        task.update(updates)
         task["finished_at"] = store.utc_now_iso()
         store.write_state(home, state)
         return task
+
+
+def _persist_result(home: Path, task_id: str, result: dict) -> dict:
+    """Atomically write the outcome of one task under the shared write lock. [FR-02]
+
+    Citations: SPEC.md lines FR-02 state machine + AC-2.3 result fields.
+    """
+
+    # NFR-04: redact on the FULL stream before truncating so secrets
+    # straddling the 2000-char boundary cannot leak.
+    return _apply_task_update(
+        home,
+        task_id,
+        {
+            "status": _classify(result),
+            "exit_code": result["exit_code"],
+            "stdout_tail": tail(redact(result["stdout"])),
+            "stderr_tail": tail(redact(result["stderr"])),
+            "duration_ms": result["duration_ms"],
+        },
+    )
 
 
 def _persist_cached_result(home: Path, task_id: str, cached: dict) -> dict:
@@ -148,20 +164,18 @@ def _persist_cached_result(home: Path, task_id: str, cached: dict) -> dict:
     Citations: SPEC.md §3 FR-04 AC-4.2.
     """
 
-    with store.get_write_lock():
-        state = store.read_state(home)
-        task = state["tasks"].get(task_id)
-        if task is None:
-            raise KeyError(f"task not found: {task_id}")
-        task["status"] = "done"
-        task["cached"] = True
-        task["exit_code"] = cached["exit_code"]
-        task["stdout_tail"] = cached["stdout_tail"]
-        task["stderr_tail"] = cached["stderr_tail"]
-        task["duration_ms"] = cached["duration_ms"]
-        task["finished_at"] = store.utc_now_iso()
-        store.write_state(home, state)
-        return task
+    return _apply_task_update(
+        home,
+        task_id,
+        {
+            "status": "done",
+            "cached": True,
+            "exit_code": cached["exit_code"],
+            "stdout_tail": cached["stdout_tail"],
+            "stderr_tail": cached["stderr_tail"],
+            "duration_ms": cached["duration_ms"],
+        },
+    )
 
 
 def _run_with_retries(
@@ -220,8 +234,8 @@ def run_task(
         command = state["tasks"][task_id]["command"]
         store.write_state(home, state)
 
-    sig = cache.signature(command)
     if use_cache:
+        sig = cache.signature(command)
         try:
             cached = cache.lookup(home, sig, cfg.cache_ttl)
         except Exception:
