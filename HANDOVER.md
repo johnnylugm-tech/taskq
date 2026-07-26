@@ -2,7 +2,7 @@
 
 **Checkpoint**: `P4-pre-gate3-20260726`  
 **Phase**: P4 — Testing  
-**Generated**: 2026-07-26T15:31:43Z
+**Generated**: 2026-07-26T15:54:11Z
 
 > ⚠️  **開始下一個工作階段前，請先執行 `/compact` 壓縮上下文**，再從「接下來的工作」繼續。
 
@@ -64,6 +64,8 @@ All 5 FR(s) Gate 1 re-eval PASS [FR-01,FR-02,FR-03,FR-04,FR-05]. Gate 3 (14 dims
   - FR-05 / developer: **complete**
 
 **Recently Committed Files:**
+  - `.methodology/state.json`
+  - `HANDOVER.md`
   - `.methodology/crg_baseline_p4.json`
   - `.methodology/decision_logs/2026-07-26/GATE_4_204e6a02.yaml`
   - `.methodology/decision_logs/2026-07-26/GATE_4_8f2036a5.yaml`
@@ -75,7 +77,6 @@ All 5 FR(s) Gate 1 re-eval PASS [FR-01,FR-02,FR-03,FR-04,FR-05]. Gate 3 (14 dims
   - `.methodology/harness_config.json`
   - `.methodology/lessons/ca7a2bc3e2dc.md`
   - `.methodology/quality_manifest.json`
-  - `.methodology/state.json`
   - `00-summary/Phase4_STAGE_PASS.md`
   - `01-requirements/TRACEABILITY_MATRIX.md`
   - `03-development/src/taskq/breaker.py`
@@ -83,7 +84,6 @@ All 5 FR(s) Gate 1 re-eval PASS [FR-01,FR-02,FR-03,FR-04,FR-05]. Gate 3 (14 dims
   - `03-development/src/taskq/store.py`
   - `03-development/tests/test_bug_hunt_resolve.py`
   - `03-development/tests/test_fr05.py`
-  - `CLAUDE.md`
 
 ## 接下來的工作
 
