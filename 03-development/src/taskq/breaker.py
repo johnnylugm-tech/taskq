@@ -56,10 +56,7 @@ def load(home: Path) -> dict:
     if not path.exists():
         return _default_state()
     with path.open(encoding="utf-8") as source:
-        try:
-            return json.load(source)
-        except (OSError, json.JSONDecodeError):  # pragma: no cover - re-raise passthrough
-            raise
+        return json.load(source)
 
 
 def save(home: Path, state: dict) -> None:
@@ -69,10 +66,7 @@ def save(home: Path, state: dict) -> None:
     """
 
     home.mkdir(parents=True, exist_ok=True)
-    try:
-        store._write_unlocked(home / _BREAKER_FILE, state)
-    except OSError:  # pragma: no cover - re-raise passthrough
-        raise
+    store._write_unlocked(home / _BREAKER_FILE, state)
 
 
 def reset(home: Path) -> dict:
