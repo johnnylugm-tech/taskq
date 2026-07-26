@@ -18,6 +18,14 @@ from pathlib import Path
 from typing import Iterator
 
 
+class StoreCorruptedError(Exception):
+    """Raised when `tasks.json` exists but is not parseable JSON. [FR-05]
+
+    Citations: SPEC.md §7 (AC-5.7) — corrupted store must fail fast and
+    must never be silently rebuilt.
+    """
+
+
 # Shared in-process write lock; complements fcntl.flock for threads spawned
 # inside a single Python process (e.g. ThreadPoolExecutor in FR-02).
 _write_lock = threading.Lock()
@@ -56,10 +64,19 @@ def _locked(home: Path, exclusive: bool) -> Iterator[None]:
 
 
 def _read_unlocked(path: Path) -> dict:
+    """Parse `tasks.json`, mapping a decode failure to `StoreCorruptedError`. [FR-05]
+
+    Citations: SPEC.md §7 (AC-5.7) — never rewrite a corrupted file, only
+    read and raise.
+    """
+
     if not path.exists():
         return _empty_state()
     with path.open(encoding="utf-8") as source:
-        state = json.load(source)
+        try:
+            state = json.load(source)
+        except json.JSONDecodeError as exc:
+            raise StoreCorruptedError(str(exc)) from exc
     if state.get("version") != 1 or not isinstance(state.get("tasks"), dict):
         raise ValueError("unsupported tasks store schema")
     return state

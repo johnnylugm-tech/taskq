@@ -1,7 +1,8 @@
 """Command-line interface for taskq.
 
-[FR-01, FR-02]
-Citations: SPEC.md lines 55-72, 102-115, 161-165 (FR-01); FR-02 subcommand.
+[FR-01, FR-02, FR-05]
+Citations: SPEC.md lines 55-72, 102-115, 161-165 (FR-01); FR-02 subcommand;
+SPEC.md §3 FR-05 (AC-5.1..5.8), §7 (exit code map, error phrasing).
 """
 
 from __future__ import annotations
@@ -73,14 +74,21 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
 
 def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
-    """Run one task by id or drain pending tasks with --all. [FR-02, FR-03, FR-04]
+    """Run one task by id or drain pending tasks with --all. [FR-02, FR-03, FR-04, FR-05]
 
     Maps a breaker-OPEN refusal from `executor` to exit 3 + stderr
     `breaker open`, without ever spawning the underlying subprocess.
-    Forwards `--cached` to `executor.run_task` for a single-id run.
+    Forwards `--cached` to `executor.run_task` for a single-id run. Rejects
+    the undocumented `<id> --all` combination and an unknown task id with
+    exit 2 (AC-5.2, AC-5.6).
 
-    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5; FR-03 AC-3.3; FR-04 AC-4.2.
+    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5; FR-03 AC-3.3; FR-04
+    AC-4.2; FR-05 AC-5.2, AC-5.4, AC-5.6.
     """
+
+    if args.id and args.all:
+        print("run does not accept both <id> and --all", file=sys.stderr)
+        return _EXIT_VALIDATION_ERROR
 
     try:
         if args.all:
@@ -91,13 +99,70 @@ def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
         if not args.id:
             print("run requires a task id or --all", file=sys.stderr)
             return _EXIT_VALIDATION_ERROR
-        task = executor.run_task(args.id, cfg=cfg, use_cache=args.cached)
+        try:
+            task = executor.run_task(args.id, cfg=cfg, use_cache=args.cached)
+        except KeyError:
+            print(f"unknown task: {args.id}", file=sys.stderr)
+            return _EXIT_VALIDATION_ERROR
         if task.get("status") == "timeout":
             return _EXIT_TIMEOUT
         return 0
     except breaker.BreakerOpenError:
         print("breaker open", file=sys.stderr)
         return _EXIT_BREAKER_OPEN
+
+
+def status_command(args: argparse.Namespace, cfg: config.Config) -> int:
+    """Print one task's full record, or exit 2 for an unknown id. [FR-05]
+
+    Citations: SPEC.md §3 FR-05 subcommand table (AC-5.1, AC-5.5); §7
+    (AC-5.6).
+    """
+
+    state = store.read_state(cfg.home)
+    task = state["tasks"].get(args.id)
+    if task is None:
+        print(f"unknown task: {args.id}", file=sys.stderr)
+        return _EXIT_VALIDATION_ERROR
+    if args.json_output:
+        sys.stdout.write(json.dumps(task, separators=(",", ":")))
+    else:
+        print(task)
+    return 0
+
+
+def list_command(args: argparse.Namespace, cfg: config.Config) -> int:
+    """Print every task, optionally filtered by `--status`. [FR-05]
+
+    Citations: SPEC.md §3 FR-05 subcommand table (AC-5.1, AC-5.5).
+    """
+
+    state = store.read_state(cfg.home)
+    tasks = list(state["tasks"].values())
+    if args.status is not None:
+        tasks = [task for task in tasks if task.get("status") == args.status]
+    if args.json_output:
+        sys.stdout.write(json.dumps(tasks, separators=(",", ":")))
+    else:
+        for task in tasks:
+            print(task)
+    return 0
+
+
+def clear_command(args: argparse.Namespace, cfg: config.Config) -> int:
+    """Empty `$TASKQ_HOME`'s task store, breaker state, and cache. [FR-05]
+
+    Citations: SPEC.md §3 FR-05 subcommand table (AC-5.1, AC-5.5).
+    """
+
+    store.write_state(cfg.home, {"version": 1, "tasks": {}})
+    breaker.save(cfg.home, {"version": 1, "state": "CLOSED", "failure_count": 0, "opened_at": None})
+    store._write_unlocked(cfg.home / "cache.json", {"version": 1, "entries": {}})
+    if args.json_output:
+        sys.stdout.write(json.dumps({"cleared": True}, separators=(",", ":")))
+    else:
+        print("cleared")
+    return 0
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -107,20 +172,38 @@ def _build_parser() -> argparse.ArgumentParser:
     submit = subparsers.add_parser("submit")
     submit.add_argument("command")
     submit.add_argument("--name")
-    submit.add_argument("--json", action="store_true", dest="json_output")
+    submit.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
     submit.set_defaults(handler=submit_command)
     run = subparsers.add_parser("run")
     run.add_argument("id", nargs="?")
     run.add_argument("--all", action="store_true")
     run.add_argument("--cached", action="store_true")
+    run.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
     run.set_defaults(handler=run_command)
+    status = subparsers.add_parser("status")
+    status.add_argument("id")
+    status.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    status.set_defaults(handler=status_command)
+    list_parser = subparsers.add_parser("list")
+    list_parser.add_argument("--status", dest="status")
+    list_parser.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    list_parser.set_defaults(handler=list_command)
+    clear = subparsers.add_parser("clear")
+    clear.add_argument("--json", action="store_true", dest="json_output", default=argparse.SUPPRESS)
+    clear.set_defaults(handler=clear_command)
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Parse arguments and dispatch the selected taskq command. [FR-01]
+    """Parse arguments and dispatch the selected taskq command. [FR-01, FR-05]
 
-    Citations: SPEC.md lines 102-115, 161-165.
+    Wraps the handler dispatch so a corrupted `tasks.json` maps to exit 1
+    + stderr `store corrupted` (AC-5.7), and any other unexpected
+    exception raised by a handler maps to exit 1 rather than leaking a
+    raw traceback (AC-5.4, AC-5.8).
+
+    Citations: SPEC.md lines 102-115, 161-165; §3 FR-05 AC-5.4, AC-5.7,
+    AC-5.8.
     """
 
     arguments = list(argv) if argv is not None else sys.argv[1:]
@@ -134,4 +217,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     args = _build_parser().parse_args(arguments)
-    return args.handler(args, config.load())
+    try:
+        return args.handler(args, config.load())
+    except store.StoreCorruptedError:
+        print("store corrupted", file=sys.stderr)
+        return 1
+    except Exception as exc:  # AC-5.4/AC-5.8: unexpected handler error -> exit 1
+        print(f"internal error: {exc}", file=sys.stderr)
+        return 1

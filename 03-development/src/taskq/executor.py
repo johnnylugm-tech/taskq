@@ -6,6 +6,7 @@ Citations: SPEC.md lines FR-02 (AC-2.1..2.5, NFR-04 redaction).
 
 from __future__ import annotations
 
+import json
 import re
 import shlex
 import subprocess
@@ -238,7 +239,7 @@ def run_task(
     if sig is not None:
         try:
             cached = cache.lookup(home, sig, cfg.cache_ttl)
-        except Exception:
+        except (json.JSONDecodeError, OSError, KeyError, ValueError):
             cached = None
         if cached is not None:
             task = _persist_cached_result(home, task_id, cached)
@@ -265,7 +266,7 @@ def run_task(
                         "duration_ms": task["duration_ms"],
                     },
                 )
-            except Exception:
+            except (json.JSONDecodeError, OSError, KeyError, ValueError):
                 pass
     return task
 

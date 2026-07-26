@@ -74,7 +74,7 @@ def lookup(home: Path, sig: str, ttl_seconds: float) -> dict | None:
         if age_seconds >= ttl_seconds:
             return None
         return entry
-    except Exception:
+    except (json.JSONDecodeError, OSError, KeyError, ValueError):
         return None
 
 
@@ -95,7 +95,7 @@ def put(home: Path, sig: str, result: dict) -> None:
             state = json.loads(path.read_text(encoding="utf-8")) if path.exists() else _empty_state()
             if not isinstance(state, dict) or not isinstance(state.get("entries"), dict):
                 state = _empty_state()
-        except Exception:
+        except (json.JSONDecodeError, OSError, ValueError):
             state = _empty_state()
         entry = dict(result)
         entry["cached_at"] = store.utc_now_iso()

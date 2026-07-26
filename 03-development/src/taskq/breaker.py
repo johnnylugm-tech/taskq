@@ -103,14 +103,23 @@ def _seconds_since(iso_timestamp: str) -> float:
 
 
 def check(home: Path, cfg: config.Config) -> str:
-    """Return the effective admission state: CLOSED, OPEN, or HALF_OPEN. [FR-03]
+    """Return the effective admission state: CLOSED, OPEN, or HALF_OPEN. [FR-03, FR-05]
 
-    Citations: SPEC.md §3 FR-03 "HALF_OPEN" (AC-3.4).
+    Re-validates a persisted OPEN state against the *current* configured
+    `cfg.breaker_threshold`: a reconfiguration that raises the threshold
+    above the recorded `failure_count` retires a stale OPEN rather than
+    admission staying refused forever (FR-05 AC-5.4 single-task timeout
+    case, which reconfigures the threshold mid-run to exercise a fresh
+    admission after an earlier OPEN).
+
+    Citations: SPEC.md §3 FR-03 "HALF_OPEN" (AC-3.4); §3 FR-05 AC-5.4.
     """
 
     state = load(home)
     if state["state"] != "OPEN":
         return state["state"]
+    if state.get("failure_count", 0) < cfg.breaker_threshold:
+        return "CLOSED"
     opened_at = state.get("opened_at")
     if opened_at is None:
         return "OPEN"
