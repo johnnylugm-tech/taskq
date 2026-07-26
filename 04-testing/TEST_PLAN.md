@@ -1,213 +1,231 @@
-# TEST_PLAN.md — taskq (Phase 4 Testing)
+# taskq Phase 4 Test Plan
 
-> Source of truth: `01-requirements/SRS.md` (FR-01..FR-05 ACs, NFR-01..NFR-10 ACs)
-> + `.methodology/quality_manifest.json` (FR list, NFR→module traceability).
-> Canonical spec: `SPEC.md v4.0.0`. Generated: 2026-07-26.
-> Scope: master test-case catalogue authored once, ahead of per-FR TDD.
-> Coverage classes per requirement: **P**ositive / **N**egative / **B**oundary / **E**dge.
+## 1. Scope and sources
 
-## 0. Conventions
+This plan verifies all functional requirements in `.methodology/quality_manifest.json` (`FR-01` through `FR-05`) and all non-functional requirements in `01-requirements/SRS.md` (`NFR-01` through `NFR-10`). Acceptance-criterion references below use the identifiers in the SRS.
 
-- **Test ID**: `TC-<FR|NFR>-<nn>[-<class>]`; class ∈ {P,N,B,E}.
-- **Priority**: P0 (acceptance-gating) / P1 (core) / P2 (defensive).
-- **Runner**: `pytest` (+ `pytest-benchmark` for NFR-01/09). Entry: `python -m taskq`.
-- **Exit code map** (AC-5.4): `0` ok / `1` internal / `2` input+unknown-id / `3` breaker open / `4` single-task timeout.
-- **8 env vars**: `TASKQ_HOME, TASKQ_TASK_TIMEOUT, TASKQ_MAX_WORKERS, TASKQ_RETRY_LIMIT, TASKQ_BACKOFF_BASE, TASKQ_BREAKER_THRESHOLD, TASKQ_BREAKER_COOLDOWN, TASKQ_CACHE_TTL`.
-- Each row cites the AC it binds to.
+Out of scope for this plan: implementation changes, TDD execution, gate execution, bug hunts, and phase advancement.
 
----
+## 2. Test approach
 
-## 1. FR-01 — Task submission and validation
+- **Executable:** `/Users/johnny/projects/taskq/.venv/bin/python`
+- **CLI surface:** `<python> -m taskq`
+- **Isolation:** Give every test a fresh temporary `TASKQ_HOME`; never share state unless the case explicitly tests threads or processes.
+- **Determinism:** Inject clocks and sleep functions for retry, breaker, and TTL tests. Use real elapsed time only for the NFR latency/recovery acceptance tests.
+- **Persistence checks:** Parse every affected JSON file after operations and verify both its schema and retained records. For failure cases, compare file bytes/state before and after to detect forbidden writes or silent rebuilds.
+- **Subprocess checks:** Spy on or monkeypatch `subprocess.run` for unit/integration cases; use real child processes for CLI, timeout, and cross-process cases.
+- **Fault injection:** Trigger NFR-07 scenarios through test monkeypatching (or an explicitly test-gated interface if one exists). The production CLI must reject `--inject-fault` as required by AC-NFR07.5.
+- **Performance:** Warm up before measurement, use the same machine/run for comparisons, report raw samples and p95, and exclude task subprocess execution as specified.
 
-Surface: `taskq submit "<command>" [--name NAME]`. Fail → exit 2 + stderr, no store write (AC-1.1..1.6).
+### Categories
 
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-FR01-01-P | P | Valid submit returns 8-hex id, status pending | `submit "echo hi"` | stdout = 8-hex id; task recorded `pending` w/ command,name,created_at; tasks.json atomically written | P0 | 1.1,1.5 |
-| TC-FR01-02-P | P | `--json` single-line output | `submit "echo hi" --json` | stdout = `{"id": "...", "status": "pending"}` single line | P0 | 1.6 |
-| TC-FR01-03-P | P | `--name` recorded when unique | `submit "echo hi" --name build` | pending task with name=build | P1 | 1.4,1.5 |
-| TC-FR01-04-N | N | Empty command rejected | `submit ""` | exit 2 + stderr; no store write | P0 | 1.1 |
-| TC-FR01-05-N | N | Whitespace-only command rejected | `submit "   "` | exit 2 (non-empty after strip) | P0 | 1.1 |
-| TC-FR01-06-N | N | Duplicate `--name` vs pending/running collides | pre-existing pending `build`; `submit "x" --name build` | exit 2 + stderr; no write | P1 | 1.4 |
-| TC-FR01-07-B | B | Length exactly 1000 accepted | `submit "<1000-char cmd>"` | success, pending | P1 | 1.2 |
-| TC-FR01-08-B | B | Length 1001 rejected | `submit "<1001-char cmd>"` | exit 2 | P0 | 1.2 |
-| TC-FR01-09-E | E | id is first 8 hex chars of uuid4 (format `^[0-9a-f]{8}$`) | `submit "echo hi"` | id matches regex | P1 | 1.5 |
-| TC-FR01-10-E | E | Name uniqueness ignores done/failed states | done task `old`; `submit "x" --name old` | success (only pending/running block) | P2 | 1.4 |
+| Category | Meaning |
+|---|---|
+| Positive | Valid input and normal successful behavior |
+| Negative | Invalid input, denied operation, or explicit failure behavior |
+| Boundary | Exact limits, thresholds, and transition instants |
+| Edge | Concurrency, persistence, unusual state, or cross-feature interaction |
 
-Injection-character negatives are enumerated under **NFR-02** (7 chars) to avoid duplication; they also assert AC-1.3.
+### Priorities
 
----
+| Priority | Meaning |
+|---|---|
+| P0 | Release-blocking safety, security, persistence, or primary CLI behavior |
+| P1 | Required behavior with substantial functional or operational impact |
+| P2 | Lower-risk compatibility, audit, or diagnostic behavior |
 
-## 2. FR-02 — Task executor
+## 3. Functional test cases
 
-Surface: `taskq run <id>` / `run --all`. No `shell=True` anywhere (AC-2.1..2.5).
+### FR-01 — Task submission and validation
 
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-FR02-01-P | P | Exit 0 → done | run id of `echo hi` | status `done`, exit_code 0 | P0 | 2.2 |
-| TC-FR02-02-P | P | Uses `shlex.split`, capture_output, text, timeout (no shell) | run `echo a b` | argv split; stdout captured; no shell metachar expansion | P0 | 2.1 |
-| TC-FR02-03-P | P | Result record fields present | run `echo hi` | record has exit_code, stdout_tail, stderr_tail, duration_ms, finished_at | P0 | 2.3 |
-| TC-FR02-04-N | N | Non-zero exit → failed | run `python -c "import sys;sys.exit(1)"` | status `failed`, exit_code non-zero | P0 | 2.2 |
-| TC-FR02-05-N | N | Timeout → timeout status, single-run exit 4 | `TASKQ_TASK_TIMEOUT=1` run `sleep 5` | status `timeout`; process exit 4 | P0 | 2.2,2.5 |
-| TC-FR02-06-B | B | stdout_tail truncated to last 2000 chars | run cmd emitting 3000 chars | stdout_tail len == 2000 (tail) | P1 | 2.3 |
-| TC-FR02-07-B | B | stderr_tail truncated to last 2000 chars | run cmd emitting 3000 stderr chars | stderr_tail len == 2000 (tail) | P1 | 2.3 |
-| TC-FR02-08-P | P | `run --all` concurrent via ThreadPoolExecutor(max_workers) | N pending tasks; `run --all` | all processed; thread-safe store writes via shared Lock | P0 | 2.4 |
-| TC-FR02-09-E | E | State machine only pending→running→terminal | run already-done id | no illegal re-transition (no-op / rejected) | P2 | 2.2 |
-| TC-FR02-10-E | E | `run --all` timeout does NOT force exit 4 (single-only) | mixed batch w/ one timeout via `--all` | exit ≠ 4 (batch mode); task status `timeout` recorded | P1 | 2.5 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-FR01-POS-001 | Positive | AC-1.1, AC-1.5 | Submit a valid named command and persist a new pending task. | Fresh home; run `submit "echo hi" --name greeting`. | Exit `0`; stdout is an 8-character lowercase hexadecimal task ID derived from UUID4; `tasks.json` contains that ID with `status=pending`, exact command/name, and a populated `created_at`; the write is atomic. | P0 |
+| TC-FR01-NEG-001 | Negative | AC-1.1 | Reject empty and whitespace-only commands without touching storage. | Parameterize command as `""`, `" "`, and `"\t\n"`; snapshot home first. | Exit `2`; explanatory stderr; no task is added and no data file is created or changed. | P0 |
+| TC-FR01-NEG-002 | Negative | AC-1.3 | Reject every prohibited injection character. | Parameterize `echo x{char}y` over `;`, `|`, `&`, `$`, `>`, `<`, and backtick. | Every invocation exits `2` with stderr; stdout has no ID; storage remains unchanged. | P0 |
+| TC-FR01-BND-001 | Boundary | AC-1.2 | Verify the inclusive 1000-character command limit. | Submit a safe command string of exactly 1000 characters, then one of 1001 characters. | Length 1000 succeeds and is stored exactly; length 1001 exits `2` and causes no write. | P0 |
+| TC-FR01-EDGE-001 | Edge | AC-1.4 | Enforce name uniqueness only for active tasks. | Seed tasks sharing candidate name `same` in turn as `pending`, `running`, `done`, `failed`, and `timeout`; submit a new task with `--name same`. | Existing `pending` or `running` causes exit `2` and no write; each terminal state permits the new submission. | P1 |
+| TC-FR01-EDGE-002 | Edge | AC-1.6 | Emit the documented machine-readable submission response. | Run global `--json` with a valid submit in a fresh home. | Exit `0`; stdout is exactly one parseable JSON line with keys `id` and `status`; `id` matches the stored task and `status` is `pending`; no human text contaminates stdout. | P1 |
 
----
+### FR-02 — Task executor
 
-## 3. FR-03 — Retry and circuit breaker
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-FR02-POS-001 | Positive | AC-2.1, AC-2.2, AC-2.3 | Execute a pending task that exits successfully. | Submit a safe Python command that writes to stdout and exits `0`; run its ID. | Observed transition is `pending → running → done`; execution uses tokenized arguments without a shell; exit `0`; result stores `exit_code=0`, output tails, non-negative `duration_ms`, and `finished_at`. | P0 |
+| TC-FR02-NEG-001 | Negative | AC-2.2, AC-2.3 | Record a non-zero child exit as a final failed result. | Pending command writes stderr and exits `7`; retries disabled for this case. | Task transitions `pending → running → failed`; stored `exit_code=7`, stderr tail, duration, and finish time are correct; CLI reports the failure without corrupting state. | P0 |
+| TC-FR02-BND-001 | Boundary | AC-2.3 | Retain exactly the final 2000 characters of each output stream. | Child emits distinguishable stdout/stderr payloads of lengths `1999`, `2000`, and `2001`. | For 1999/2000, complete content is stored; for 2001, exactly the last 2000 characters are stored independently for each stream. | P1 |
+| TC-FR02-BND-002 | Boundary | AC-2.2, AC-2.5 | Enforce the configured single-task timeout. | Set `TASKQ_TASK_TIMEOUT` to a short positive value; run a command that exceeds it. | Task ends as `timeout`; single-task CLI exits `4`; timing/result fields are persisted and no child remains running. | P0 |
+| TC-FR02-EDGE-001 | Edge | AC-2.4 | Run all and process only pending tasks at bounded concurrency. | Set `TASKQ_MAX_WORKERS=2`; seed at least five pending tasks plus terminal/running tasks; invoke `run --all` with concurrency instrumentation. | Every initially pending task executes once, non-pending tasks do not execute, active workers never exceed `2`, and all state writes remain valid with no lost task. | P0 |
+| TC-FR02-EDGE-002 | Edge | AC-2.1, AC-2.4 | Preserve argument boundaries for commands containing quoted spaces during concurrent execution. | Submit safe commands whose quoted arguments contain spaces; execute via `run --all`. | Each child receives the expected `shlex.split` argument vector; no shell expansion occurs; stored outputs map to the correct task IDs. | P1 |
 
-Global cross-task/cross-process breaker; injectable sleep (AC-3.1..3.5).
+### FR-03 — Retry and circuit breaker
 
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-FR03-01-P | P | Retry up to RETRY_LIMIT on failed/timeout | failing cmd, `TASKQ_RETRY_LIMIT=3` | ≤3 retries then final failed | P0 | 3.1 |
-| TC-FR03-02-P | P | Backoff = BACKOFF_BASE × 2^n via injected sleep | failing cmd, injected sleep spy | sleep args = base·2^1, base·2^2, ... | P0 | 3.1 |
-| TC-FR03-03-B | B | Threshold reached → OPEN | THRESHOLD consecutive final-failures | breaker state OPEN | P0 | 3.2 |
-| TC-FR03-04-B | B | One below threshold stays CLOSED | THRESHOLD-1 final-failures | breaker CLOSED | P1 | 3.2 |
-| TC-FR03-05-N | N | OPEN refuses run → exit 3, no subprocess | breaker OPEN; `run <id>` | exit 3 + stderr `breaker open`; subprocess not spawned | P0 | 3.3 |
-| TC-FR03-06-P | P | After cooldown → HALF_OPEN, one probe allowed; success → CLOSED+reset | OPEN + wait COOLDOWN; probe succeeds | state CLOSED, counter reset | P0 | 3.4 |
-| TC-FR03-07-N | N | HALF_OPEN probe fails → back to OPEN | HALF_OPEN; probe fails | state OPEN again | P1 | 3.4 |
-| TC-FR03-08-E | E | Breaker persisted atomically to breaker.json | trigger OPEN | breaker.json valid JSON w/ state; tmp+os.replace | P1 | 3.5 |
-| TC-FR03-09-E | E | Retry-exhausted-but-still-failing increments consecutive count | repeated exhaustion | count increments toward threshold | P2 | 3.2 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-FR03-POS-001 | Positive | AC-3.1 | Retry transient failure and stop after eventual success. | `TASKQ_RETRY_LIMIT=2`, `TASKQ_BACKOFF_BASE=0.1`; injected executor fails twice then succeeds; injected sleeper records calls. | Three total attempts occur; waits are `0.1` then `0.2` seconds (`base × 2^n`, n starting at 0); final task is `done`; no further retry occurs. | P0 |
+| TC-FR03-NEG-001 | Negative | AC-3.3 | Refuse all execution while the breaker is open. | Persist a non-expired `OPEN` breaker; spy on subprocess; invoke `run <id>`. | Immediate exit `3`; stderr contains verbatim `breaker open`; subprocess call count is zero; task remains unexecuted. | P0 |
+| TC-FR03-BND-001 | Boundary | AC-3.1, AC-3.2 | Verify exact retry and final-failure thresholds. | Set retry limit `2` and breaker threshold `3`; make every attempt fail across three tasks, then request a fourth run. | Each failing task has one initial attempt plus exactly two retries; breaker remains closed after final failures 1 and 2, opens on failure 3, and refuses task 4 with exit `3`. | P0 |
+| TC-FR03-BND-002 | Boundary | AC-3.4 | Test the cooldown transition immediately before and at expiry. | Fake clock at `opened_at + cooldown - ε`, then at `opened_at + cooldown`. | Before expiry, run is refused with exit `3`; at expiry, state becomes `HALF_OPEN` and exactly one probe is admitted. | P0 |
+| TC-FR03-EDGE-001 | Edge | AC-3.4 | Resolve both HALF_OPEN probe outcomes and admit only one concurrent probe. | At cooldown expiry issue two simultaneous runs; parameterize admitted probe as success or final failure. | Only one probe executes. Success closes breaker and resets count to zero; failure reopens it with a refreshed open time; the competing run is refused. | P0 |
+| TC-FR03-EDGE-002 | Edge | AC-3.5 | Persist breaker state across process boundaries. | Process A opens the breaker and exits; process B uses the same home before cooldown. | `breaker.json` is valid atomic JSON; process B reads the persisted state, exits `3`, prints `breaker open`, and spawns no task process. | P0 |
 
----
+### FR-04 — Result TTL cache
 
-## 4. FR-04 — Result TTL cache
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-FR04-POS-001 | Positive | AC-4.1, AC-4.2 | Replay the newest valid done result for the same command. | Seed a successful cached result under `sha256(command)` with age less than TTL; submit the same command under a new ID; run with `--cached`; spy on subprocess. | No subprocess is called; task becomes `done` with `cached=true`; cached `exit_code` and `stdout_tail` are replayed; signature equals the hexadecimal SHA-256 of the exact command. | P0 |
+| TC-FR04-NEG-001 | Negative | AC-4.3 | Execute normally when no eligible cache entry exists. | Parameterize absent entry, different-command signature, cached non-`done` result, and invocation without `--cached`. | Subprocess executes normally; successful result is stored under the correct signature in `cache.json`; result is not falsely marked cached. | P0 |
+| TC-FR04-BND-001 | Boundary | AC-4.2, AC-4.3 | Verify the precise TTL boundary. | With fake time, set cache age to `TTL - ε`, exactly `TTL`, and `TTL + ε`. | `TTL - ε` replays; exactly TTL and older are expired because they are not within TTL, so normal execution occurs and refreshes cache on success. | P0 |
+| TC-FR04-EDGE-001 | Edge | AC-4.1, AC-4.2 | Select the most recent done result without normalizing the command. | Seed multiple done results for the exact command and a visually similar command with different whitespace. | Exact command hashes independently from the whitespace variant; the newest eligible exact-signature result is replayed. | P1 |
+| TC-FR04-EDGE-002 | Edge | AC-4.4 | Keep cache valid under concurrent hits and misses. | Use `run --all` with tasks causing simultaneous reads and successful writes to shared cache. | Every task receives its own correct result; `cache.json` remains parseable and complete; no entry is lost or partially written. | P0 |
 
-Signature `sha256(command)`; `--cached` replays recent `done` within TTL (AC-4.1..4.4).
+### FR-05 — CLI integration
 
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-FR04-01-P | P | Signature = sha256(command) | put/get for `echo hi` | key == sha256 hex of command | P0 | 4.1 |
-| TC-FR04-02-P | P | Cache hit replays exit_code+stdout_tail, no subprocess, cached:true | prior done; `run <id> --cached` within TTL | replayed result; no subprocess; status done, `cached: true` | P0 | 4.2 |
-| TC-FR04-03-N | N | Cache miss executes normally then writes cache | new signature `run <id> --cached` | subprocess runs; on done, cache.json updated | P0 | 4.3 |
-| TC-FR04-04-B | B | Entry at exactly TTL boundary | result aged == TASKQ_CACHE_TTL | defined boundary behavior (expired → re-exec) asserted | P1 | 4.2 |
-| TC-FR04-05-B | B | Entry just past TTL → miss/re-exec | aged TTL+1s; `--cached` | subprocess runs (expiry) | P0 | 4.2,4.3 |
-| TC-FR04-06-N | N | Only `done` results are cached | failed/timeout result | not written to cache.json | P1 | 4.3 |
-| TC-FR04-07-E | E | Cache read/write atomic + thread-safe under `run --all` | concurrent cached runs | cache.json valid JSON, no corruption | P1 | 4.4 |
-| TC-FR04-08-E | E | Different command → different signature (no cross-hit) | `echo a` cached; `run` of `echo b --cached` | miss (distinct sha256) | P2 | 4.1,4.2 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-FR05-POS-001 | Positive | AC-5.1, AC-5.2 | Verify the module entry point and documented argparse command matrix. | Invoke `<python> -m taskq` for `submit`, `run <id>`, `run <id> --cached`, `run --all`, `status <id>`, `list`, `list --status pending`, and `clear`. | Each form parses and dispatches to its documented behavior; valid operations exit `0`; `run` options act on the intended task set. | P0 |
+| TC-FR05-POS-002 | Positive | AC-5.5 | Verify status, filtered list, and full clear behavior end to end. | Seed tasks in multiple statuses and all three data files; query one task, list with/without filters, then run `clear`. | Status returns the complete matching record; list returns all or exactly the selected status; clear empties `$TASKQ_HOME` data while leaving the tool usable. | P0 |
+| TC-FR05-NEG-001 | Negative | AC-5.4, AC-5.6 | Return the canonical unknown-ID error wherever an ID is accepted. | Invoke `status <missing>`, `run <missing>`, and the AC-5.6 clear form with `<missing>` against a valid store. | Each exits `2`; stderr contains verbatim `unknown task: <id>`; no data changes and no subprocess starts. | P0 |
+| TC-FR05-NEG-002 | Negative | AC-5.2, AC-5.4 | Reject malformed CLI combinations. | Invoke no subcommand, unknown subcommand, `run` with neither ID nor `--all`, and `run <id> --all`. | argparse rejects each input with exit `2` and useful stderr; no store mutation occurs. | P1 |
+| TC-FR05-BND-001 | Boundary | AC-5.3 | Apply global JSON mode consistently at the command boundary. | Run each successful subcommand with global `--json`, including empty and non-empty list results. | Each stdout response is one parseable JSON line with no human prefix/suffix; represented records preserve their full typed values. | P1 |
+| TC-FR05-BND-002 | Boundary | AC-5.4 | Exercise every canonical exit-code class. | Parameterize success, validation/unknown ID, open breaker, single-task timeout, and injected internal error. | CLI exits exactly `0`, `2`, `3`, `4`, and `1`, respectively; no other code is substituted. | P0 |
+| TC-FR05-EDGE-001 | Edge | AC-5.7 | Fail fast on a corrupted task store without rebuilding it. | Write non-JSON bytes to `tasks.json`, snapshot them, then invoke a CLI command that loads the store. | Exit `1`; stderr contains `store corrupted`; original bytes remain unchanged; no fresh empty store is written. | P0 |
+| TC-FR05-EDGE-002 | Edge | AC-5.8 | Surface unexpected internal errors and prohibit broad exception swallowing. | Inject a representative unexpected I/O error at the CLI boundary; statically inspect exception handlers in production code. | CLI exits `1` with an error diagnostic; no bare `except:` or broad `except Exception:` silently consumes the error. | P0 |
 
----
+## 4. Non-functional test cases
 
-## 5. FR-05 — CLI integration
+### NFR-01 — Performance
 
-argparse subcommands; global `--json`; entry `python -m taskq` (AC-5.1..5.8).
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR01-POS-001 | Positive | AC-NFR01.1 | Measure valid submit-plus-status latency over 100 iterations. | Warm environment; 100 isolated valid `submit` + matching `status` operations; no task execution. | Reported p95 is strictly `< 50 ms`; all operations are correct and no samples are discarded without disclosure. | P1 |
+| TC-NFR01-NEG-001 | Negative | AC-NFR01.1 | Confirm the performance gate rejects a non-compliant sample set. | Feed the metric assertion a controlled sample set whose p95 is `> 50 ms`. | The test fails with measured p95 and threshold in the diagnostic rather than passing by rounding. | P2 |
+| TC-NFR01-BND-001 | Boundary | AC-NFR01.1 | Enforce the strict threshold comparison. | Calibrate metric-assertion samples to p95 immediately below and exactly at `50 ms`. | Below 50 passes; exactly 50 fails. | P2 |
+| TC-NFR01-EDGE-001 | Edge | AC-NFR01.1 | Measure the valid maximum-length submission path. | Repeat the 100-iteration measurement using safe 1000-character commands and immediate status reads. | Correctness is retained and p95 remains `< 50 ms`. | P1 |
 
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-FR05-01-P | P | Subcommands wired: submit/run/status/list/clear | each subcommand invoked | documented behaviour, exit 0 on valid | P0 | 5.1 |
-| TC-FR05-02-P | P | `run` accepts `<id>`, `--cached`, `--all` combinations | `run <id>`, `run <id> --cached`, `run --all` | parsed per table | P0 | 5.2 |
-| TC-FR05-03-P | P | Global `--json` → single-line JSON | `status <id> --json` | machine-readable single-line JSON | P1 | 5.3 |
-| TC-FR05-04-P | P | `status <id>` full record; `list [--status S]`; `clear` empties HOME | respective invocations | correct listing/filter; clear empties $TASKQ_HOME | P0 | 5.5 |
-| TC-FR05-05-N | N | Exit-code map — validation error | `submit ""` | exit 2 | P0 | 5.4 |
-| TC-FR05-06-N | N | Exit-code map — breaker open | OPEN; `run <id>` | exit 3 | P0 | 5.4 |
-| TC-FR05-07-N | N | Exit-code map — single-task timeout | `TASKQ_TASK_TIMEOUT=1` run `sleep 5` | exit 4 | P0 | 5.4 |
-| TC-FR05-08-N | N | Exit-code map — internal error | forced internal error | exit 1 | P1 | 5.4 |
-| TC-FR05-09-N | N | Unknown id at status/run/clear → exit 2 + verbatim stderr | `status deadbeef` | exit 2 + stderr `unknown task: deadbeef` | P0 | 5.6 |
-| TC-FR05-10-N | N | Corrupt tasks.json at startup → exit 1, not rebuilt | non-parseable tasks.json; any cmd | exit 1 + stderr `store corrupted`; file untouched | P0 | 5.7 |
-| TC-FR05-11-E | E | No bare `except:` / broad swallow (static + behavior) | grep AST scan of src | zero bare/broad swallow; unexpected → exit 1 | P1 | 5.8 |
-| TC-FR05-12-B | B | `list --status` filter matches only given status | mixed statuses | only matching rows returned | P2 | 5.5 |
+### NFR-02 — Security
 
----
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR02-POS-001 | Positive | AC-NFR02.1 | Verify safe commands execute without a shell. | Submit/run a command with quoted arguments; inspect subprocess invocation and production Python AST/source. | Correct argv reaches the child; no production call passes `shell=True`; repository production scan has zero matches. | P0 |
+| TC-NFR02-NEG-001 | Negative | AC-NFR02.2 | Cover every blacklist character individually. | Seven parameterized submissions containing `;`, `|`, `&`, `$`, `>`, `<`, or backtick. | All seven exit `2`, emit stderr, and cause zero writes/executions. | P0 |
+| TC-NFR02-BND-001 | Boundary | AC-NFR02.2 | Reject a prohibited character at every command boundary. | For each of the seven characters, place it first, last, and between otherwise safe characters. | Every placement is rejected with exit `2`; surrounding whitespace does not hide it. | P0 |
+| TC-NFR02-EDGE-001 | Edge | AC-NFR02.1 | Detect syntactic variations of a forbidden shell argument. | Static scan covers multiline calls and whitespace variants, not only the literal text `shell=True`. | Any fixture containing a truthy `shell` keyword is flagged; production contains none. | P1 |
 
-## 6. Non-Functional Requirements
+### NFR-03 — Reliability and atomicity
 
-### NFR-01 — Performance (perf/benchmark)
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR01-01-P | P | submit+status p95 < 50ms / 100 iter | pytest-benchmark 100 iterations (no subprocess) | p95 < 50 ms | P0 | NFR01.1 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR03-POS-001 | Positive | AC-NFR03.1 | Verify atomic writes for all three data files. | Trigger writes to `tasks.json`, `breaker.json`, and `cache.json` while spying on filesystem operations. | Each write uses a temp file followed by `os.replace`; each completed target parses as JSON and retains expected records. | P0 |
+| TC-NFR03-NEG-001 | Negative | AC-NFR03.2 | Interrupt each file type during a write. | Parameterize the three files and terminate/fail between temp-file write and replace. | On startup, the previous target remains valid, recovery restores a valid backup, or the CLI fails fast with explicit stderr/non-zero exit; it never silently rebuilds. | P0 |
+| TC-NFR03-BND-001 | Boundary | AC-NFR03.3 | Measure maximum breaker recovery time. | Open breaker, use a successful half-open probe, and measure from `opened_at` through close. | `OPEN → CLOSED` completes no later than `TASKQ_BREAKER_COOLDOWN + 1 s`; measured duration is reported. | P0 |
+| TC-NFR03-EDGE-001 | Edge | AC-NFR03.1, AC-NFR03.2 | Start with an orphan temp file beside a valid target. | Leave a partial temp file from an interrupted write and restart using the same home. | Canonical target remains valid and authoritative (or startup fails explicitly); no partial temp content silently replaces it. | P1 |
 
-### NFR-02 — Security: shell + injection blacklist
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR02-01-N | N | Repo-wide grep `shell=True` → 0 in production code | source scan | zero matches | P0 | NFR02.1 |
-| TC-NFR02-02-N | N | Injection char `;` rejected | `submit "echo a; rm x"` | exit 2 | P0 | NFR02.2,1.3 |
-| TC-NFR02-03-N | N | Injection char `\|` rejected | `submit "echo a \| b"` | exit 2 | P0 | NFR02.2,1.3 |
-| TC-NFR02-04-N | N | Injection char `&` rejected | `submit "a & b"` | exit 2 | P0 | NFR02.2,1.3 |
-| TC-NFR02-05-N | N | Injection char `$` rejected | `submit "echo $X"` | exit 2 | P0 | NFR02.2,1.3 |
-| TC-NFR02-06-N | N | Injection char `>` rejected | `submit "echo a > f"` | exit 2 | P0 | NFR02.2,1.3 |
-| TC-NFR02-07-N | N | Injection char `<` rejected | `submit "cat < f"` | exit 2 | P0 | NFR02.2,1.3 |
-| TC-NFR02-08-N | N | Injection char `` ` `` rejected | ``submit "echo `id`"`` | exit 2 | P0 | NFR02.2,1.3 |
+### NFR-04 — Secret redaction
 
-### NFR-03 — Reliability: atomic write + breaker recovery
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR03-01-P | P | 3 files written tmp+os.replace, parseable | write each file | each parseable JSON post-write | P0 | NFR03.1 |
-| TC-NFR03-02-E | E | Mid-write crash → valid JSON OR fail-fast (no silent rewrite) | simulate kill during write | old file valid JSON, or explicit stderr+non-zero | P0 | NFR03.2 |
-| TC-NFR03-03-B | B | Breaker OPEN→CLOSED recovery ≤ cooldown+1s | integration timing | recovery time within bound | P1 | NFR03.3 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR04-POS-001 | Positive | AC-NFR04.1, AC-NFR04.2 | Redact both secret patterns from both persisted streams. | Parameterize stdout/stderr lines containing `sk-abcdefghijklmnop` and `token=secret-value`. | Every matching line is stored exactly as `[REDACTED]`; the raw secret appears nowhere in `tasks.json` or `cache.json`. | P0 |
+| TC-NFR04-NEG-001 | Negative | AC-NFR04.1, AC-NFR04.2 | Preserve non-matching near-secret lines. | Emit `sk-1234567`, `token=`, and ordinary text. | Non-matching lines remain unchanged; redaction does not erase benign output. | P1 |
+| TC-NFR04-BND-001 | Boundary | AC-NFR04.1 | Enforce the minimum `sk-` token length. | Emit otherwise valid tokens with suffix lengths 7 and 8, including allowed `_` and `-`. | Length 7 is retained; length 8 is redacted wholesale. | P0 |
+| TC-NFR04-EDGE-001 | Edge | AC-NFR04.1, AC-NFR04.2 | Redact the whole matching line in multiline and mixed-content output. | Emit benign line, line with prefix/suffix around a secret, then another benign line; include both patterns across stdout/stderr. | Only matching lines become exactly `[REDACTED]`; neighboring lines and line order remain intact; truncation cannot expose a matched secret. | P0 |
 
-### NFR-04 — Security: secret redaction
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR04-01-N | N | `sk-` token line redacted before persist | stdout line `sk-abcdefghijklmnop` | stored as `[REDACTED]` | P0 | NFR04.1 |
-| TC-NFR04-02-N | N | `token=` line redacted before persist | stderr line `token=secretvalue` | stored as `[REDACTED]` | P0 | NFR04.2 |
-| TC-NFR04-03-E | E | Non-secret line untouched | ordinary output | persisted verbatim | P2 | NFR04.1,4.2 |
+### NFR-05 — Maintainability
 
-### NFR-05 — Maintainability: docstring [FR-XX] tags
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR05-01-P | P | Every public fn/class docstring has ≥1 `[FR-XX]` tag | AST scan of src/taskq | all public symbols tagged (`[NFR-XX]` alone insufficient) | P0 | NFR05.1 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR05-POS-001 | Positive | AC-NFR05.1 | Audit every public function and class for an FR tag. | Parse all Python modules under `src/taskq`; enumerate public functions/classes and inspect docstrings. | Every enumerated symbol has a non-empty docstring containing at least one `[FR-XX]` tag. | P1 |
+| TC-NFR05-NEG-001 | Negative | AC-NFR05.1 | Ensure an NFR-only or missing tag does not satisfy the audit. | Run the audit against fixtures with no docstring, an untagged docstring, and `[NFR-01]` only. | Each fixture is reported as non-compliant with its symbol and file location. | P2 |
+| TC-NFR05-BND-001 | Boundary | AC-NFR05.1 | Distinguish public from private symbols. | Audit fixtures containing `public_fn`/`PublicClass` and `_private_fn`/`_PrivateClass`. | Public symbols are required and checked; private symbols are excluded from this specific requirement. | P2 |
+| TC-NFR05-EDGE-001 | Edge | AC-NFR05.1 | Include public methods and exported symbols consistently. | Enumerate public module functions/classes and public methods exposed by those classes. | No publicly exposed callable/class is skipped due to decorators, imports, or class nesting rules used by the project. | P2 |
 
-### NFR-06 — Deployability: env config
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR06-01-P | P | config.py exposes 8 TASKQ_* readers w/ defaults | import config | all 8 present w/ documented defaults | P0 | NFR06.1 |
-| TC-NFR06-02-P | P | .env.example declares all 8 vars w/ comment | parse .env.example | 8 vars each commented | P0 | NFR06.2 |
+### NFR-06 — Deployability
 
-### NFR-07 — Resilience: fault injection
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR07-01-E | E | corrupt-mid-write → restore or fail-fast | `--inject-fault=corrupt-mid-write` then startup | backup-restore OR explicit stderr+non-zero; no silent rewrite | P0 | NFR07.1 |
-| TC-NFR07-02-E | E | oserror-on-write → recovery/fail-fast | `--inject-fault=oserror-on-write` | matches 07.1 behavior | P0 | NFR07.2 |
-| TC-NFR07-03-E | E | disk-full → recovery/fail-fast | `--inject-fault=disk-full` | matches 07.1 behavior | P0 | NFR07.3 |
-| TC-NFR07-04-E | E | kill-mid-write → recovery/fail-fast | `--inject-fault=kill-mid-write` | matches 07.1 behavior | P0 | NFR07.4 |
-| TC-NFR07-05-N | N | `--inject-fault` rejected on production CLI | normal `submit --inject-fault=...` | flag rejected (not accepted in normal run) | P1 | NFR07.5 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR06-POS-001 | Positive | AC-NFR06.1 | Verify all documented default configuration values. | Clear all `TASKQ_*` variables and load config. | Values are `TASKQ_HOME=.taskq`, `TASKQ_MAX_WORKERS=4`, `TASKQ_TASK_TIMEOUT=10.0`, `TASKQ_RETRY_LIMIT=2`, `TASKQ_BACKOFF_BASE=0.1`, `TASKQ_BREAKER_THRESHOLD=3`, `TASKQ_BREAKER_COOLDOWN=5.0`, and `TASKQ_CACHE_TTL=3600`. | P1 |
+| TC-NFR06-NEG-001 | Negative | AC-NFR06.2 | Make omissions in the environment template detectable. | Run the inventory validator against fixtures missing one variable or its comment. | The validator fails and names every missing declaration/comment; the real `.env.example` has no omissions. | P1 |
+| TC-NFR06-BND-001 | Boundary | AC-NFR06.1, AC-NFR06.2 | Enforce the exact eight-variable inventory. | Compare `config.py`, `.env.example`, and the documented eight-name set. | All eight names appear in both locations with defaults/comments; no documented name is duplicated or missing. | P1 |
+| TC-NFR06-EDGE-001 | Edge | AC-NFR06.1 | Verify each environment override is read through centralized config. | Set all eight variables to distinguishable valid non-default values, reload config in an isolated process, then clear them. | Loaded values match overrides with correct types; a fresh process after clearing returns to defaults without stale values. | P1 |
 
-### NFR-08 — Concurrency: cross-process safety
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR08-01-P | P | POSIX flock (write-excl/read-shared); Windows msvcrt.locking | lock acquisition | correct primitive per platform | P1 | NFR08.1 |
-| TC-NFR08-02-N | N | NFS/network fs → flock disabled + WARNING | simulate network fs | flock off, WARNING emitted, atomic write retained | P1 | NFR08.2 |
-| TC-NFR08-03-E | E | 4 concurrent processes → 3 valid JSON files, no corruption | 4-proc concurrent writes on same $TASKQ_HOME | all 3 files valid JSON, no loss | P0 | NFR08.3 |
+### NFR-07 — Fault-injection resilience
+
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR07-POS-001 | Positive | AC-NFR07.1–AC-NFR07.4 | Recover safely from every specified injected write fault when a valid backup is available. | For each of three data files, parameterize `corrupt-mid-write`, `oserror-on-write`, `disk-full`, and `kill-mid-write` through test monkeypatch/test-only activation. | Next startup detects the fault and restores a parseable, semantically valid backup; recovery is explicit and no records are silently fabricated. | P0 |
+| TC-NFR07-NEG-001 | Negative | AC-NFR07.1–AC-NFR07.4 | Fail fast when recovery is impossible. | Repeat every fault with no usable backup; snapshot damaged/original state. | Explicit stderr identifies failure, exit is non-zero, and no empty/default file silently replaces the data. | P0 |
+| TC-NFR07-BND-001 | Boundary | AC-NFR07.1–AC-NFR07.4 | Inject immediately before and after atomic replacement. | Place the fault at the last write step before `os.replace` and immediately after successful replace for each file. | Before replace, old target stays valid or startup fails explicitly; after replace, new target is complete and valid; no partial target is accepted. | P0 |
+| TC-NFR07-EDGE-001 | Edge | AC-NFR07.5 | Keep fault activation out of production CLI paths. | Invoke normal `<python> -m taskq ... --inject-fault=<scenario>` for every scenario without a test gate. | argparse rejects the flag with exit `2`; no fault executes and existing data remains unchanged. | P0 |
+
+### NFR-08 — Cross-process safety
+
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR08-POS-001 | Positive | AC-NFR08.1 | Use platform-appropriate shared and exclusive file locks. | Instrument reads/writes on POSIX; exercise a mocked/Windows-specific path for `msvcrt.locking`. | Reads request shared locks; writes request exclusive locks; POSIX uses `fcntl.flock` and Windows uses `msvcrt.locking`. | P0 |
+| TC-NFR08-NEG-001 | Negative | AC-NFR08.2 | Degrade explicitly on a detected network filesystem. | Simulate NFS/network-FS detection and perform reads/writes. | Flock is skipped, a `WARNING` is emitted, and atomic temp-plus-replace writes remain active; degradation is not silent. | P0 |
+| TC-NFR08-BND-001 | Boundary | AC-NFR08.3 | Run the required four-process concurrent-write test. | Start exactly four independent CLI processes against one home, coordinating simultaneous task, breaker, and cache updates. | All processes finish without lost acknowledged writes; all three files parse as JSON and satisfy their schemas. | P0 |
+| TC-NFR08-EDGE-001 | Edge | AC-NFR08.1–AC-NFR08.3 | Interleave readers, submitters, runners, and cache writers across processes. | Four processes repeatedly mix `submit`, `status`, and run/cache operations against one home. | No process observes partial JSON; no task/cache/breaker record is cross-assigned or silently lost; final files remain valid. | P0 |
 
 ### NFR-09 — Scalability
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR09-01-P | P | 1000-task submit+status p95 < 100ms | pytest-benchmark 1000 tasks | p95 < 100 ms | P0 | NFR09.1 |
-| TC-NFR09-02-E | E | run --all 100 tasks → valid JSON, no loss | run --all over 100 tasks | tasks.json valid, all 100 records present | P0 | NFR09.2 |
-| TC-NFR09-03-B | B | Memory < 100MB peak via streaming iterator | 1000-task op mem probe | peak < 100 MB; no full in-memory load | P1 | NFR09.3 |
 
-### NFR-10 — Evolvability: schema migration
-| Test ID | Class | Description | Input | Expected output | Prio | AC |
-|---------|-------|-------------|-------|-----------------|------|----|
-| TC-NFR10-01-P | P | All 3 files root `version == 1` | read files | version field == 1 | P0 | NFR10.1 |
-| TC-NFR10-02-P | P | version<1 → auto-migrate v1 + backup `<file>.v<n>.bak` | v0 file read | migrated & written back; backup preserved | P0 | NFR10.2 |
-| TC-NFR10-03-N | N | version>1 → refuse + upgrade prompt, no in-place migrate | v2 file read | refusal + upgrade prompt | P0 | NFR10.3 |
-| TC-NFR10-04-E | E | Migration failure → backup retained, exit 1 | force migration error | `.v<n>.bak` retained; exit 1 fail-fast | P1 | NFR10.4 |
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR09-POS-001 | Positive | AC-NFR09.1 | Measure submit-plus-status at 1000-task scale. | Prepopulate/submit to 1000 tasks, then measure valid combined operations without subprocess execution. | Reported p95 is strictly `< 100 ms`; queried records are correct. | P1 |
+| TC-NFR09-NEG-001 | Negative | AC-NFR09.2 | Preserve records when the 100-task batch contains mixed child outcomes. | Run `--all` on 100 pending tasks whose deterministic outcomes include done, failed, and timeout. | `tasks.json` remains valid and contains all original 100 IDs with their correct final states; failures do not drop records. | P0 |
+| TC-NFR09-BND-001 | Boundary | AC-NFR09.1, AC-NFR09.3 | Enforce strict latency and memory ceilings at the required scale. | Measure 1000-task workload p95 and peak resident/traced memory with calibrated threshold assertions. | p95 must be `< 100 ms` and peak memory must be `< 100 MB`; equality at either limit fails rather than passing by rounding. | P1 |
+| TC-NFR09-EDGE-001 | Edge | AC-NFR09.2, AC-NFR09.3 | Execute exactly 100 tasks concurrently without full-load behavior or loss. | Queue 100 uniquely identifiable tasks; run `--all`; monitor peak memory and parse final file. | All 100 IDs remain, output maps to the right IDs, JSON is valid, and peak memory stays below 100 MB using streaming iteration. | P0 |
 
----
+### NFR-10 — Schema evolution
 
-## 7. Coverage Traceability
+| Test case ID | Category | AC | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|---|
+| TC-NFR10-POS-001 | Positive | AC-NFR10.1 | Persist current schema version on every root object. | Create/use tasks, breaker, and cache data through public operations. | Each of `tasks.json`, `breaker.json`, and `cache.json` has root `version: 1` and remains readable. | P0 |
+| TC-NFR10-NEG-001 | Negative | AC-NFR10.3 | Reject a future schema version without modifying it. | Parameterize each file with valid JSON carrying `version: 2`; snapshot bytes; start the CLI. | Read is refused; stderr prompts use of an upgrade tool; process exits non-zero/`1`; bytes remain unchanged and no in-place migration occurs. | P0 |
+| TC-NFR10-BND-001 | Boundary | AC-NFR10.2 | Migrate the immediately previous version to v1 with a backup. | Parameterize each valid v0 data file; start an operation that reads it. | File is migrated and written back with `version: 1`; original is retained exactly as `<file>.v0.bak`; records are preserved. | P0 |
+| TC-NFR10-EDGE-001 | Edge | AC-NFR10.4 | Retain the backup and fail fast if migration cannot complete. | Force migration/write failure after the v0 backup is created for each file. | Process exits `1`; explicit stderr is emitted; `<file>.v0.bak` remains byte-for-byte intact; no partial v1 file is accepted. | P0 |
 
-| Req | Manifest? | Test IDs | Classes covered |
-|-----|-----------|----------|-----------------|
-| FR-01 | ✅ | TC-FR01-01..10 (+NFR02 injection) | P/N/B/E |
-| FR-02 | ✅ | TC-FR02-01..10 | P/N/B/E |
-| FR-03 | ✅ | TC-FR03-01..09 | P/N/B/E |
-| FR-04 | ✅ | TC-FR04-01..08 | P/N/B/E |
-| FR-05 | ✅ | TC-FR05-01..12 | P/N/B/E |
-| NFR-01 | ✅ | TC-NFR01-01 | P |
-| NFR-02 | ✅ | TC-NFR02-01..08 | N |
-| NFR-03 | ✅ | TC-NFR03-01..03 | P/B/E |
-| NFR-04 | ✅ | TC-NFR04-01..03 | N/E |
-| NFR-05 | ✅ | TC-NFR05-01 | P |
-| NFR-06 | ✅ | TC-NFR06-01..02 | P |
-| NFR-07 | ✅ | TC-NFR07-01..05 | N/E |
-| NFR-08 | ✅ | TC-NFR08-01..03 | P/N/E |
-| NFR-09 | ✅ | TC-NFR09-01..03 | P/B/E |
-| NFR-10 | ✅ | TC-NFR10-01..04 | P/N/E |
+## 5. Manifest quality and architecture checks
 
-All 5 FRs from `quality_manifest.json` (`fr_ids`) covered; all 10 NFRs covered.
+| Test case ID | Source | Description | Input / precondition | Expected output / state | Priority |
+|---|---|---|---|---|---|
+| TC-QUAL-001 | `quality_targets.min_coverage` | Measure automated-test coverage. | Run the approved coverage collector over the complete test suite. | Coverage is at least `80%`; report uncovered production lines. | P1 |
+| TC-QUAL-002 | `quality_targets.max_complexity` | Audit production-code complexity. | Analyze all production functions using the approved complexity metric. | No function exceeds complexity `15`; violations identify file and symbol. | P2 |
+| TC-QUAL-003 | `quality_targets.max_coupling` | Audit module coupling. | Analyze dependencies among production modules. | Coupling is at most `0.3`; report the measured value and offending edges if exceeded. | P2 |
+| TC-ARCH-001 | `architecture_constraints` | Detect circular dependencies. | Build/import-analyze the `taskq` module dependency graph. | No circular dependency is present. | P1 |
+
+## 6. Requirement coverage matrix
+
+| Requirement | Covered test cases | Status |
+|---|---|---|
+| FR-01 | TC-FR01-POS-001, TC-FR01-NEG-001, TC-FR01-NEG-002, TC-FR01-BND-001, TC-FR01-EDGE-001, TC-FR01-EDGE-002 | Planned |
+| FR-02 | TC-FR02-POS-001, TC-FR02-NEG-001, TC-FR02-BND-001, TC-FR02-BND-002, TC-FR02-EDGE-001, TC-FR02-EDGE-002 | Planned |
+| FR-03 | TC-FR03-POS-001, TC-FR03-NEG-001, TC-FR03-BND-001, TC-FR03-BND-002, TC-FR03-EDGE-001, TC-FR03-EDGE-002 | Planned |
+| FR-04 | TC-FR04-POS-001, TC-FR04-NEG-001, TC-FR04-BND-001, TC-FR04-EDGE-001, TC-FR04-EDGE-002 | Planned |
+| FR-05 | TC-FR05-POS-001, TC-FR05-POS-002, TC-FR05-NEG-001, TC-FR05-NEG-002, TC-FR05-BND-001, TC-FR05-BND-002, TC-FR05-EDGE-001, TC-FR05-EDGE-002 | Planned |
+| NFR-01 | TC-NFR01-POS-001, TC-NFR01-NEG-001, TC-NFR01-BND-001, TC-NFR01-EDGE-001 | Planned |
+| NFR-02 | TC-NFR02-POS-001, TC-NFR02-NEG-001, TC-NFR02-BND-001, TC-NFR02-EDGE-001 | Planned |
+| NFR-03 | TC-NFR03-POS-001, TC-NFR03-NEG-001, TC-NFR03-BND-001, TC-NFR03-EDGE-001 | Planned |
+| NFR-04 | TC-NFR04-POS-001, TC-NFR04-NEG-001, TC-NFR04-BND-001, TC-NFR04-EDGE-001 | Planned |
+| NFR-05 | TC-NFR05-POS-001, TC-NFR05-NEG-001, TC-NFR05-BND-001, TC-NFR05-EDGE-001 | Planned |
+| NFR-06 | TC-NFR06-POS-001, TC-NFR06-NEG-001, TC-NFR06-BND-001, TC-NFR06-EDGE-001 | Planned |
+| NFR-07 | TC-NFR07-POS-001, TC-NFR07-NEG-001, TC-NFR07-BND-001, TC-NFR07-EDGE-001 | Planned |
+| NFR-08 | TC-NFR08-POS-001, TC-NFR08-NEG-001, TC-NFR08-BND-001, TC-NFR08-EDGE-001 | Planned |
+| NFR-09 | TC-NFR09-POS-001, TC-NFR09-NEG-001, TC-NFR09-BND-001, TC-NFR09-EDGE-001 | Planned |
+| NFR-10 | TC-NFR10-POS-001, TC-NFR10-NEG-001, TC-NFR10-BND-001, TC-NFR10-EDGE-001 | Planned |
+
+## 7. Entry and exit criteria
+
+### Entry criteria
+
+- Python 3.11 virtual environment and test dependencies are available.
+- The CLI is importable through `python -m taskq`.
+- Each test can create an isolated writable `TASKQ_HOME`.
+- Timing-sensitive cases have a documented machine/load baseline.
+
+### Exit criteria
+
+- Every manifest FR (`FR-01` through `FR-05`) has executed positive, negative, boundary, and edge coverage.
+- Every SRS NFR (`NFR-01` through `NFR-10`) has an executed case and traceable evidence.
+- All P0 cases pass; any P1/P2 failure is recorded with requirement impact and disposition.
+- All three persisted files remain parseable and schema-valid after relevant normal, concurrent, and fault cases.
+- Performance, coverage, complexity, coupling, and architecture thresholds are reported without rounding a failing boundary into a pass.
