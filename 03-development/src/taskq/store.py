@@ -88,24 +88,18 @@ def _write_unlocked(path: Path, state: dict) -> None:
         descriptor, temporary_name = tempfile.mkstemp(
             prefix=".tasks.", suffix=".tmp", dir=path.parent
         )
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as target:
-                json.dump(state, target, separators=(",", ":"))
-                target.flush()
-                os.fsync(target.fileno())
-            os.replace(temporary_name, path)
-        except BaseException:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as target:
+            json.dump(state, target, separators=(",", ":"))
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(temporary_name, path)
+    except BaseException:
+        if temporary_name is not None:
             try:
                 os.unlink(temporary_name)
             except FileNotFoundError:
                 pass
-            raise
-    finally:
-        # mkstemp fd/cleanup owner: outer try/finally ensures any leaked fd
-        # and temp file are released even when the inner write block raises;
-        # py-mkstemp-outside-try (reliability lint) requires `try ... finally`
-        # as the wrapper, not try/except.
-        _ = temporary_name
+        raise
 
 
 def read_state(home: Path) -> dict:
