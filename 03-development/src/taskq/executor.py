@@ -12,8 +12,9 @@ import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Callable
 
-from . import config, store
+from . import breaker, config, store
 
 
 # AC-2.3 + NFR-04: redact secrets on the FULL stream before truncation so a
@@ -146,13 +147,22 @@ def run_task(
     *,
     cfg: config.Config,
     use_cache: bool = False,
+    sleep_fn: Callable[[float], None] = time.sleep,
 ) -> dict:
-    """Advance one task through pending -> running -> done|failed|timeout. [FR-02]
+    """Advance one task through pending -> running -> done|failed|timeout. [FR-02, FR-03]
 
-    Citations: SPEC.md lines FR-02 AC-2.1, AC-2.2, AC-2.3.
+    Retries on `failed`/`timeout` up to `cfg.retry_limit`, sleeping
+    `cfg.backoff_base * 2 ** attempt` (attempt numbered from 1) before each
+    retry via the injected `sleep_fn`. Refuses immediately, without
+    spawning a subprocess, when the breaker is OPEN.
+
+    Citations: SPEC.md lines FR-02 AC-2.1, AC-2.2, AC-2.3; FR-03 AC-3.1, AC-3.3.
     """
 
     home = cfg.home
+    if breaker.check(home, cfg) == "OPEN":
+        raise breaker.BreakerOpenError("breaker open")
+
     with store.get_write_lock():
         state = store.read_state(home)
         if task_id not in state["tasks"]:
@@ -162,13 +172,31 @@ def run_task(
         store.write_state(home, state)
 
     result = _run_subprocess(command, cfg.task_timeout)
-    return _persist_result(home, task_id, result)
+    status = _classify(result)
+    attempt = 0
+    while status in ("failed", "timeout") and attempt < cfg.retry_limit:
+        attempt += 1
+        sleep_fn(cfg.backoff_base * 2**attempt)
+        result = _run_subprocess(command, cfg.task_timeout)
+        status = _classify(result)
+
+    task = _persist_result(home, task_id, result)
+    if status in ("failed", "timeout"):
+        breaker.record_failure(home, cfg)
+    else:
+        breaker.record_success(home)
+    return task
 
 
-def run_all(*, cfg: config.Config) -> list[dict]:
-    """Submit every pending task through a bounded thread pool. [FR-02]
+def run_all(
+    *, cfg: config.Config, sleep_fn: Callable[[float], None] = time.sleep
+) -> list[dict]:
+    """Submit every pending task through a bounded thread pool. [FR-02, FR-03]
 
-    Citations: SPEC.md lines FR-02 AC-2.4 (`--all`, ThreadPoolExecutor).
+    Forwards `sleep_fn` to every `run_task` call so retry backoff stays
+    testable under `ThreadPoolExecutor` concurrency.
+
+    Citations: SPEC.md lines FR-02 AC-2.4 (`--all`, ThreadPoolExecutor); FR-03 AC-3.1.
     """
 
     state = store.read_state(cfg.home)
@@ -180,7 +208,10 @@ def run_all(*, cfg: config.Config) -> list[dict]:
 
     results: list[dict] = []
     with ThreadPoolExecutor(max_workers=cfg.max_workers) as pool:
-        futures = [pool.submit(run_task, task_id, cfg=cfg) for task_id in pending_ids]
+        futures = [
+            pool.submit(run_task, task_id, cfg=cfg, sleep_fn=sleep_fn)
+            for task_id in pending_ids
+        ]
         for future in futures:
             results.append(future.result())
     return results

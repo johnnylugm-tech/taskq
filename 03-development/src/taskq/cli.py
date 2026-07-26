@@ -12,7 +12,7 @@ import os
 import sys
 from typing import Sequence
 
-from . import config, executor, store
+from . import breaker, config, executor, store
 
 # SPEC.md §3 FR-01: seven injection characters must never appear in a
 # submitted command string.
@@ -23,6 +23,9 @@ _EXIT_VALIDATION_ERROR = 2
 
 # Exit code returned for a single-task run that produced a timeout (FR-02 AC-2.5).
 _EXIT_TIMEOUT = 4
+
+# Exit code returned when the breaker is OPEN and refuses admission (FR-03 AC-3.3).
+_EXIT_BREAKER_OPEN = 3
 
 
 def _validation_error(message: str) -> int:
@@ -70,23 +73,30 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
 
 def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
-    """Run one task by id or drain pending tasks with --all. [FR-02]
+    """Run one task by id or drain pending tasks with --all. [FR-02, FR-03]
 
-    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5.
+    Maps a breaker-OPEN refusal from `executor` to exit 3 + stderr
+    `breaker open`, without ever spawning the underlying subprocess.
+
+    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5; FR-03 AC-3.3.
     """
 
-    if args.all:
-        results = executor.run_all(cfg=cfg)
-        if any(task.get("status") == "timeout" for task in results):
+    try:
+        if args.all:
+            results = executor.run_all(cfg=cfg)
+            if any(task.get("status") == "timeout" for task in results):
+                return _EXIT_TIMEOUT
+            return 0
+        if not args.id:
+            print("run requires a task id or --all", file=sys.stderr)
+            return _EXIT_VALIDATION_ERROR
+        task = executor.run_task(args.id, cfg=cfg)
+        if task.get("status") == "timeout":
             return _EXIT_TIMEOUT
         return 0
-    if not args.id:
-        print("run requires a task id or --all", file=sys.stderr)
-        return _EXIT_VALIDATION_ERROR
-    task = executor.run_task(args.id, cfg=cfg)
-    if task.get("status") == "timeout":
-        return _EXIT_TIMEOUT
-    return 0
+    except breaker.BreakerOpenError:
+        print("breaker open", file=sys.stderr)
+        return _EXIT_BREAKER_OPEN
 
 
 def _build_parser() -> argparse.ArgumentParser:
