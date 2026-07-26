@@ -97,6 +97,11 @@ def record_success(home: Path) -> dict:
         return state
 
 
+def _seconds_since(iso_timestamp: str) -> float:
+    moment = datetime.fromisoformat(iso_timestamp.replace("Z", "+00:00"))
+    return (datetime.now(timezone.utc) - moment).total_seconds()
+
+
 def check(home: Path, cfg: config.Config) -> str:
     """Return the effective admission state: CLOSED, OPEN, or HALF_OPEN. [FR-03]
 
@@ -109,8 +114,6 @@ def check(home: Path, cfg: config.Config) -> str:
     opened_at = state.get("opened_at")
     if opened_at is None:
         return "OPEN"
-    opened_dt = datetime.fromisoformat(opened_at.replace("Z", "+00:00"))
-    elapsed = (datetime.now(timezone.utc) - opened_dt).total_seconds()
-    if elapsed >= cfg.breaker_cooldown:
+    if _seconds_since(opened_at) >= cfg.breaker_cooldown:
         return "HALF_OPEN"
     return "OPEN"

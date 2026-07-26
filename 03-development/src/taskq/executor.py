@@ -142,6 +142,26 @@ def _persist_result(home: Path, task_id: str, result: dict) -> dict:
         return task
 
 
+def _run_with_retries(
+    command: str, *, cfg: config.Config, sleep_fn: Callable[[float], None]
+) -> dict:
+    """Run ``command``, retrying failed/timeout outcomes up to `cfg.retry_limit`. [FR-03]
+
+    Sleeps `cfg.backoff_base * 2 ** attempt` (attempt numbered from 1) via the
+    injected `sleep_fn` before each retry.
+
+    Citations: SPEC.md §3 FR-03 AC-3.1.
+    """
+
+    result = _run_subprocess(command, cfg.task_timeout)
+    attempt = 0
+    while _classify(result) in ("failed", "timeout") and attempt < cfg.retry_limit:
+        attempt += 1
+        sleep_fn(cfg.backoff_base * 2**attempt)
+        result = _run_subprocess(command, cfg.task_timeout)
+    return result
+
+
 def run_task(
     task_id: str,
     *,
@@ -171,14 +191,8 @@ def run_task(
         command = state["tasks"][task_id]["command"]
         store.write_state(home, state)
 
-    result = _run_subprocess(command, cfg.task_timeout)
+    result = _run_with_retries(command, cfg=cfg, sleep_fn=sleep_fn)
     status = _classify(result)
-    attempt = 0
-    while status in ("failed", "timeout") and attempt < cfg.retry_limit:
-        attempt += 1
-        sleep_fn(cfg.backoff_base * 2**attempt)
-        result = _run_subprocess(command, cfg.task_timeout)
-        status = _classify(result)
 
     task = _persist_result(home, task_id, result)
     if status in ("failed", "timeout"):
