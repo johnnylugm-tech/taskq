@@ -54,6 +54,8 @@ from pathlib import Path
 
 import pytest
 
+from hypothesis import HealthCheck, given, settings, strategies as st
+
 # GREEN TODO: `taskq.cache` must exist — this import raises
 # ModuleNotFoundError until GREEN creates the module; that failure is the
 # documented RED signal for this whole file — do NOT wrap in try/except.
@@ -563,3 +565,71 @@ def test_cache_put_lookup_roundtrip(taskq_home):
             f"result for key {key!r}; expected {value!r}, got {looked_up.get(key)!r}"
         )
     assert "cached_at" in looked_up, "put() must stamp cached_at on the persisted entry"
+
+
+# ---------------------------------------------------------------------------
+# Direction B property test — TEST_SPEC.md P4-cache-roundtrip
+# ---------------------------------------------------------------------------
+
+
+_CACHE_RESULT_DICT = st.fixed_dictionaries(
+    mapping={
+        "exit_code": st.integers(min_value=-2, max_value=255),
+        "stdout_tail": st.text(
+            max_size=120,
+            alphabet=st.characters(
+                whitelist_categories=("L", "N", "P", "Zs"),
+                blacklist_characters="\x00",
+            ),
+        ),
+        "stderr_tail": st.text(
+            max_size=120,
+            alphabet=st.characters(
+                whitelist_categories=("L", "N", "P", "Zs"),
+                blacklist_characters="\x00",
+            ),
+        ),
+        "duration_ms": st.integers(min_value=0, max_value=600_000),
+        "status": st.sampled_from(["done", "failed", "timeout"]),
+    }
+)
+
+
+@st.composite
+def _signature_and_result(draw):
+    """Generate a (signature, result) pair where the signature is the sha256
+    of an arbitrary command string (any hex-64 string is a valid cache key
+    — signature() is the SCHEMA boundary, not the key universe)."""
+    cmd = draw(st.text(min_size=0, max_size=200, alphabet=st.characters(
+        whitelist_categories=("L", "N", "P", "Zs"), blacklist_characters="\x00")))
+    sig = cache.signature(cmd)
+    result = draw(_CACHE_RESULT_DICT)
+    return sig, result
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(pair=_signature_and_result())
+def test_cache_put_lookup_roundtrip_property(taskq_home, pair):
+    """Direction B property `P4-cache-roundtrip` for FR-04:
+
+        cache_get(cache_put(signature, result)) == result   (modulo cached_at)
+
+    The P2 RED engine cannot evaluate this (signature/cache_get are
+    symbolic, not bound to declared Inputs), so TEST_SPEC.md defers the
+    actual round-trip exercise to P4 via hypothesis @given. Closes the
+    `property_not_executed` preflight that blocked the P3→P4 push on
+    2026-07-26."""
+    sig, result = pair
+    cache.put(taskq_home, sig, result)
+    looked_up = cache.lookup(taskq_home, sig, ttl_seconds=86400.0)
+    assert looked_up is not None, (
+        f"a just-written entry must be retrievable; got None for sig={sig[:16]}..."
+    )
+    for key, value in result.items():
+        assert looked_up[key] == value, (
+            f"cache_put/cache_lookup roundtrip must preserve {key!r}: "
+            f"expected {value!r}, got {looked_up.get(key)!r}"
+        )
+    assert "cached_at" in looked_up, (
+        "put() must stamp cached_at on the persisted entry"
+    )

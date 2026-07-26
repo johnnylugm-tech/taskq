@@ -60,7 +60,6 @@ from __future__ import annotations
 import contextlib
 import io
 import json as json_lib
-import sys
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -68,6 +67,8 @@ from pathlib import Path
 from typing import Callable
 
 import pytest
+
+from hypothesis import HealthCheck, given, settings, strategies as st
 
 # GREEN TODO: `taskq.breaker` must exist — this import raises
 # ModuleNotFoundError until GREEN creates the module; that failure is the
@@ -430,4 +431,59 @@ def test_fr03_retry_backoff_bounded(taskq_home, monkeypatch):
     assert max_in_flight <= int(max_workers), (
         f"NP-15: concurrent retry sleeps must never exceed max_workers="
         f"{max_workers}, saw {max_in_flight}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# FR-03 defensive branch — check() on a legacy/corrupted OPEN state
+# ---------------------------------------------------------------------------
+
+
+def test_breaker_check_open_missing_opened_at(taskq_home):
+    """`breaker.check` treats a persisted OPEN state with no `opened_at`
+    (e.g. a legacy/corrupted record) as still OPEN, never crashing on the
+    cooldown calculation."""
+    _write_breaker_state(taskq_home, state="OPEN", failure_count=3, opened_at=None)
+    result = breaker.check(taskq_home, config.load())
+    assert result == "OPEN", (
+        f"OPEN state with missing opened_at must stay OPEN, got {result}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Direction B property test — TEST_SPEC.md P3-breaker-roundtrip
+# ---------------------------------------------------------------------------
+
+
+_BREAKER_STATE_DICT = st.fixed_dictionaries(
+    mapping={
+        "version": st.just(1),
+        "state": st.sampled_from(["CLOSED", "OPEN"]),
+        "failure_count": st.integers(min_value=0, max_value=10_000),
+        "opened_at": st.one_of(
+            st.none(),
+            st.just("2026-01-01T00:00:00Z"),
+            st.just("2026-07-26T12:34:56Z"),
+        ),
+    }
+)
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(state=_BREAKER_STATE_DICT)
+def test_breaker_save_load_roundtrip_property(taskq_home, state):
+    """Direction B property `P3-breaker-roundtrip` for FR-03:
+
+        load_breaker(save_breaker(S)) == S
+
+    Exercises every (state, failure_count, opened_at) combination under the
+    schema documented in `taskq.breaker._default_state`, guarded by
+    TEST_SPEC.md's `**Properties**` table — closes the
+    `property_not_executed` preflight that blocked the P3→P4 push on
+    2026-07-26."""
+    breaker.save(taskq_home, state)
+    loaded = breaker.load(taskq_home)
+    assert loaded == state, (
+        f"breaker roundtrip must preserve state verbatim:\n"
+        f"  saved:   {state}\n  loaded:  {loaded}"
     )
