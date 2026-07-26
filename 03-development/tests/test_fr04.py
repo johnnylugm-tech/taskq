@@ -495,3 +495,71 @@ def test_fr04_output_feeds_fr02_executor_pipeline(taskq_home, monkeypatch):
         "Q7/FR-02 boundary: the FR-02 pipeline must observe the REPLAYED "
         "cached output, not a fresh subprocess execution"
     )
+
+
+# ---------------------------------------------------------------------------
+# FR-04 direct unit tests — taskq.cache module internals
+# ---------------------------------------------------------------------------
+
+
+# AC-4.2/AC-4.3: cache.json exists (other signatures present) but the
+# requested signature is absent — a true per-key miss, distinct from the
+# no-file-at-all case already covered by test_cache_miss_normal_execution.
+def test_cache_lookup_signature_not_in_entries(taskq_home):
+    """cache.lookup returns None when cache.json exists but sig is unknown."""
+    other_sig = cache.signature("echo other-command")
+    cache.put(
+        taskq_home,
+        other_sig,
+        {"exit_code": 0, "stdout_tail": "other\n", "stderr_tail": "", "duration_ms": 1},
+    )
+    assert (taskq_home / "cache.json").exists()
+    missing_sig = cache.signature("echo not-cached")
+    result = cache.lookup(taskq_home, missing_sig, ttl_seconds=60)
+    assert result is None, (
+        "AC-4.2/AC-4.3: a signature absent from an existing cache.json must "
+        "be a miss (None), not raise or return another entry"
+    )
+
+
+# AC-4.4: put() must self-heal a cache.json that is valid JSON but does not
+# match the {version, entries: {...}} schema (e.g. entries is not a dict),
+# treating it as an empty cache rather than raising or corrupting further.
+def test_cache_put_recovers_from_malformed_schema(taskq_home):
+    """cache.put treats a schema-invalid (but JSON-valid) cache.json as empty."""
+    cache_file = taskq_home / "cache.json"
+    cache_file.write_text(json_lib.dumps({"version": 1, "entries": "not-a-dict"}))
+    sig = cache.signature("echo schema-heal")
+    result = {"exit_code": 0, "stdout_tail": "schema-heal\n", "stderr_tail": "", "duration_ms": 2}
+    cache.put(taskq_home, sig, result)
+    payload = json_lib.loads(cache_file.read_text())
+    assert sig in payload["entries"], (
+        "AC-4.4: put() must recover from a malformed (non-dict entries) "
+        "cache.json by treating it as empty and writing the new entry"
+    )
+    assert payload["entries"][sig]["stdout_tail"] == "schema-heal\n"
+
+
+# P4-cache-roundtrip: cache_get(cache_put(signature, result)) == result,
+# exercised directly against the real cache.put/cache.lookup API (the
+# CLI-level AC-4.2 test seeds cache.json directly to avoid depending on
+# cache.put before GREEN implements it; this test proves the round trip
+# through the real module functions instead of the on-disk fixture).
+def test_cache_put_lookup_roundtrip(taskq_home):
+    """P4-cache-roundtrip: a put() result is returned unchanged by lookup()."""
+    sig = cache.signature("echo roundtrip-command")
+    result = {
+        "exit_code": 0,
+        "stdout_tail": "roundtrip-output\n",
+        "stderr_tail": "",
+        "duration_ms": 7,
+    }
+    cache.put(taskq_home, sig, result)
+    looked_up = cache.lookup(taskq_home, sig, ttl_seconds=60)
+    assert looked_up is not None, "P4-cache-roundtrip: a just-written entry must be a hit"
+    for key, value in result.items():
+        assert looked_up[key] == value, (
+            f"P4-cache-roundtrip: cache_get(cache_put(sig, result)) must equal "
+            f"result for key {key!r}; expected {value!r}, got {looked_up.get(key)!r}"
+        )
+    assert "cached_at" in looked_up, "put() must stamp cached_at on the persisted entry"
