@@ -651,3 +651,290 @@ def test_write_unlocked_cleanup_tolerates_already_missing_temp_file(taskq_home, 
     monkeypatch.setattr(store.os, "fsync", _boom)
     with pytest.raises(OSError, match="disk full"):
         store._write_unlocked(tasks_file, {"version": 1, "tasks": {}})
+
+
+# ---------------------------------------------------------------------------
+# Coverage tests — exercise sibling FR-02/FR-05 code paths that share
+# `cli.py`'s source so the FR-01 test file alone drives cli.py coverage
+# above the 80% Gate 1 threshold (cli.py is the named --include target).
+# ---------------------------------------------------------------------------
+
+
+def _seed_two_tasks(taskq_home: Path) -> None:
+    """Fixture helper: write two task records (one pending, one done) into
+    `$TASKQ_HOME/tasks.json` so `status`/`list`/`clear` have something to
+    operate on without touching the FR-01 happy-path submit flow."""
+    tasks_file = taskq_home / "tasks.json"
+    tasks_file.write_text(
+        json_lib.dumps(
+            {
+                "version": 1,
+                "tasks": {
+                    "aaaaaaaa": {
+                        "id": "aaaaaaaa",
+                        "command": "echo a",
+                        "name": None,
+                        "status": "pending",
+                        "created_at": "2026-07-25T00:00:00Z",
+                    },
+                    "bbbbbbbb": {
+                        "id": "bbbbbbbb",
+                        "command": "echo b",
+                        "name": None,
+                        "status": "done",
+                        "created_at": "2026-07-25T00:00:00Z",
+                    },
+                },
+            }
+        )
+    )
+
+
+def test_run_with_both_id_and_all_exits_2(taskq_home):
+    """cli.py line 96-98: `run <id> --all` is an undocumented combo and exits 2."""
+
+    code, _stdout, stderr = _run_inprocess(["run", "deadbeef", "--all"])
+    assert code == 2
+    assert "run does not accept both" in stderr
+
+
+def test_run_without_id_or_all_exits_2(taskq_home):
+    """cli.py line 106-108: `run` with neither `<id>` nor `--all` exits 2."""
+
+    code, _stdout, stderr = _run_inprocess(["run"])
+    assert code == 2
+    assert "run requires a task id or --all" in stderr
+
+
+def test_run_all_no_timeout_returns_0(taskq_home, monkeypatch):
+    """cli.py line 100-102 + 105: `run --all` with non-timeout results returns 0."""
+
+    def _fake_run_all(*, cfg, sleep_fn=None):
+        return [
+            {"id": "aaaaaaaa", "status": "done", "exit_code": 0},
+            {"id": "bbbbbbbb", "status": "done", "exit_code": 0},
+        ]
+
+    monkeypatch.setattr(cli.executor, "run_all", _fake_run_all)
+    code, _stdout, stderr = _run_inprocess(["run", "--all"])
+    assert code == 0
+    assert stderr.strip() == ""
+
+
+def test_run_all_with_timeout_returns_4(taskq_home, monkeypatch):
+    """cli.py line 103-104: `run --all` returns 4 when any task timed out."""
+
+    def _fake_run_all(*, cfg, sleep_fn=None):
+        return [
+            {"id": "aaaaaaaa", "status": "done", "exit_code": 0},
+            {"id": "cccccccc", "status": "timeout", "exit_code": -1},
+        ]
+
+    monkeypatch.setattr(cli.executor, "run_all", _fake_run_all)
+    code, _stdout, _stderr = _run_inprocess(["run", "--all"])
+    assert code == 4
+
+
+def test_run_unknown_task_exits_2(taskq_home, monkeypatch):
+    """cli.py line 110-113: `run <id>` with an unknown id exits 2 with stderr."""
+
+    def _raise(*_args, **_kwargs):
+        raise KeyError("task not found")
+
+    monkeypatch.setattr(cli.executor, "run_task", _raise)
+    code, _stdout, stderr = _run_inprocess(["run", "deadbeef"])
+    assert code == 2
+    assert "unknown task: deadbeef" in stderr
+
+
+def test_run_done_status_returns_0(taskq_home, monkeypatch):
+    """cli.py line 110 + 116: a successful single-task run returns 0."""
+
+    def _fake_run_task(_id, *, cfg, use_cache=False, sleep_fn=None):
+        return {"id": _id, "status": "done", "exit_code": 0}
+
+    monkeypatch.setattr(cli.executor, "run_task", _fake_run_task)
+    code, _stdout, _stderr = _run_inprocess(["run", "deadbeef"])
+    assert code == 0
+
+
+def test_run_timeout_status_returns_4(taskq_home, monkeypatch):
+    """cli.py line 114-115: `run <id>` whose result is status=timeout returns 4."""
+
+    def _fake_run_task(_id, *, cfg, use_cache=False, sleep_fn=None):
+        return {"id": _id, "status": "timeout", "exit_code": -1}
+
+    monkeypatch.setattr(cli.executor, "run_task", _fake_run_task)
+    code, _stdout, _stderr = _run_inprocess(["run", "deadbeef"])
+    assert code == 4
+
+
+def test_run_forwards_cached_flag(taskq_home, monkeypatch):
+    """cli.py line 110: `run <id> --cached` forwards the cached flag to executor."""
+
+    captured: dict = {}
+
+    def _fake_run_task(task_id, *, cfg, use_cache=False, sleep_fn=None):
+        captured["task_id"] = task_id
+        captured["use_cache"] = use_cache
+        return {"id": task_id, "status": "done", "exit_code": 0}
+
+    monkeypatch.setattr(cli.executor, "run_task", _fake_run_task)
+    code, _stdout, _stderr = _run_inprocess(["run", "deadbeef", "--cached"])
+    assert code == 0
+    assert captured == {"task_id": "deadbeef", "use_cache": True}
+
+
+def test_run_breaker_open_returns_3(taskq_home, monkeypatch):
+    """cli.py line 117-119: breaker OPEN refusal exits 3 with `breaker open` stderr."""
+
+    def _raise(*_args, **_kwargs):
+        raise cli.breaker.BreakerOpenError("breaker open")
+
+    monkeypatch.setattr(cli.executor, "run_task", _raise)
+    code, _stdout, stderr = _run_inprocess(["run", "deadbeef"])
+    assert code == 3
+    assert "breaker open" in stderr
+
+
+def test_status_known_task_plain_output(taskq_home):
+    """cli.py line 129-130 + 137-138: `status <id>` exits 0 with the task record."""
+
+    _seed_two_tasks(taskq_home)
+    code, stdout, _stderr = _run_inprocess(["status", "aaaaaaaa"])
+    assert code == 0
+    assert "aaaaaaaa" in stdout
+    with pytest.raises(json_lib.JSONDecodeError):
+        json_lib.loads(stdout.strip())
+
+
+def test_status_known_task_json_output(taskq_home):
+    """cli.py line 134-135 + 138: `status --json` prints single-line JSON."""
+
+    _seed_two_tasks(taskq_home)
+    code, stdout, _stderr = _run_inprocess(["--json", "status", "aaaaaaaa"])
+    assert code == 0
+    assert "\n" not in stdout.strip()
+    parsed = json_lib.loads(stdout.strip())
+    assert parsed["id"] == "aaaaaaaa"
+    assert parsed["status"] == "pending"
+
+
+def test_status_unknown_task_exits_2(taskq_home):
+    """cli.py line 131-133: `status <unknown>` exits 2 with stderr."""
+
+    code, _stdout, stderr = _run_inprocess(["status", "deadbeef"])
+    assert code == 2
+    assert "unknown task: deadbeef" in stderr
+
+
+def test_list_prints_all_tasks_plain(taskq_home):
+    """cli.py line 147-148 + 154-156: `list` prints every task (plain form)."""
+
+    _seed_two_tasks(taskq_home)
+    code, stdout, _stderr = _run_inprocess(["list"])
+    assert code == 0
+    assert "aaaaaaaa" in stdout
+    assert "bbbbbbbb" in stdout
+
+
+def test_list_filters_by_status(taskq_home):
+    """cli.py line 149-150: `list --status pending` keeps only matching tasks."""
+
+    _seed_two_tasks(taskq_home)
+    code, stdout, _stderr = _run_inprocess(["--json", "list", "--status", "pending"])
+    assert code == 0
+    parsed = json_lib.loads(stdout.strip())
+    listed_ids = {task["id"] for task in parsed}
+    assert listed_ids == {"aaaaaaaa"}
+
+
+def test_list_no_filter_json_empty_array(taskq_home):
+    """cli.py line 147-148 + 151-152: empty `list` JSON output is `[]`."""
+
+    code, stdout, _stderr = _run_inprocess(["--json", "list"])
+    assert code == 0
+    assert "\n" not in stdout.strip()
+    assert json_lib.loads(stdout.strip()) == []
+
+
+def test_clear_resets_store_and_prints_cleared(taskq_home):
+    """cli.py line 165-167 + 171-172: `clear` empties tasks + prints 'cleared'."""
+
+    _seed_two_tasks(taskq_home)
+    (taskq_home / "breaker.json").write_text(
+        json_lib.dumps(
+            {
+                "version": 1,
+                "state": "CLOSED",
+                "failure_count": 0,
+                "opened_at": None,
+            }
+        )
+    )
+    (taskq_home / "cache.json").write_text(
+        json_lib.dumps(
+            {
+                "version": 1,
+                "entries": {"x": {"cached_at": "2026-07-25T00:00:00Z"}},
+            }
+        )
+    )
+    code, stdout, _stderr = _run_inprocess(["clear"])
+    assert code == 0
+    assert "cleared" in stdout
+    state = store.read_state(taskq_home)
+    assert state["tasks"] == {}
+
+
+def test_clear_json_output(taskq_home):
+    """cli.py line 168-169: `clear --json` prints single-line `{"cleared":true}`."""
+
+    code, stdout, _stderr = _run_inprocess(["--json", "clear"])
+    assert code == 0
+    assert "\n" not in stdout.strip()
+    assert json_lib.loads(stdout.strip()) == {"cleared": True}
+
+
+def test_main_inject_fault_rejected_without_env(taskq_home, monkeypatch):
+    """cli.py line 218-222: --inject-fault without TASKQ_INJECT_FAULT_OK exits 2."""
+
+    monkeypatch.delenv("TASKQ_INJECT_FAULT_OK", raising=False)
+    code, _stdout, stderr = _run_inprocess(
+        ["--inject-fault=kill-mid-write", "submit", "echo hi"]
+    )
+    assert code == 2
+    assert "inject-fault rejected in production" in stderr
+
+
+def test_main_inject_fault_triggered_with_env(taskq_home, monkeypatch):
+    """cli.py line 223-224: --inject-fault with TASKQ_INJECT_FAULT_OK=1 short-circuits."""
+
+    monkeypatch.setenv("TASKQ_INJECT_FAULT_OK", "1")
+    code, _stdout, stderr = _run_inprocess(
+        ["--inject-fault=kill-mid-write", "submit", "echo hi"]
+    )
+    assert code == 1
+    assert "fault injection triggered: kill-mid-write" in stderr
+
+
+def test_main_store_corrupted_exit_1(taskq_home):
+    """cli.py line 229-231: corrupted tasks.json maps to exit 1 + stderr."""
+
+    tasks_file = taskq_home / "tasks.json"
+    tasks_file.write_text("{invalid json")
+    code, _stdout, stderr = _run_inprocess(["status", "deadbeef"])
+    assert code == 1
+    assert "store corrupted" in stderr
+
+
+def test_main_internal_handler_error_exit_1(taskq_home, monkeypatch):
+    """cli.py line 232-234: an unexpected handler exception maps to exit 1."""
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(cli.store, "add_task", _boom)
+    code, _stdout, stderr = _run_inprocess(["submit", "echo hi"])
+    assert code == 1
+    assert "internal error" in stderr
