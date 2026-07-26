@@ -73,12 +73,13 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
 
 def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
-    """Run one task by id or drain pending tasks with --all. [FR-02, FR-03]
+    """Run one task by id or drain pending tasks with --all. [FR-02, FR-03, FR-04]
 
     Maps a breaker-OPEN refusal from `executor` to exit 3 + stderr
     `breaker open`, without ever spawning the underlying subprocess.
+    Forwards `--cached` to `executor.run_task` for a single-id run.
 
-    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5; FR-03 AC-3.3.
+    Citations: SPEC.md lines FR-02 AC-2.4, AC-2.5; FR-03 AC-3.3; FR-04 AC-4.2.
     """
 
     try:
@@ -90,7 +91,7 @@ def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
         if not args.id:
             print("run requires a task id or --all", file=sys.stderr)
             return _EXIT_VALIDATION_ERROR
-        task = executor.run_task(args.id, cfg=cfg)
+        task = executor.run_task(args.id, cfg=cfg, use_cache=args.cached)
         if task.get("status") == "timeout":
             return _EXIT_TIMEOUT
         return 0
@@ -111,6 +112,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run = subparsers.add_parser("run")
     run.add_argument("id", nargs="?")
     run.add_argument("--all", action="store_true")
+    run.add_argument("--cached", action="store_true")
     run.set_defaults(handler=run_command)
     return parser
 

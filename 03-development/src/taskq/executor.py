@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 
-from . import breaker, config, store
+from . import breaker, cache, config, store
 
 
 # AC-2.3 + NFR-04: redact secrets on the FULL stream before truncation so a
@@ -142,6 +142,28 @@ def _persist_result(home: Path, task_id: str, result: dict) -> dict:
         return task
 
 
+def _persist_cached_result(home: Path, task_id: str, cached: dict) -> dict:
+    """Persist a cache-hit replay as `done` without spawning a subprocess. [FR-04]
+
+    Citations: SPEC.md §3 FR-04 AC-4.2.
+    """
+
+    with store.get_write_lock():
+        state = store.read_state(home)
+        task = state["tasks"].get(task_id)
+        if task is None:
+            raise KeyError(f"task not found: {task_id}")
+        task["status"] = "done"
+        task["cached"] = True
+        task["exit_code"] = cached["exit_code"]
+        task["stdout_tail"] = cached["stdout_tail"]
+        task["stderr_tail"] = cached["stderr_tail"]
+        task["duration_ms"] = cached["duration_ms"]
+        task["finished_at"] = store.utc_now_iso()
+        store.write_state(home, state)
+        return task
+
+
 def _run_with_retries(
     command: str, *, cfg: config.Config, sleep_fn: Callable[[float], None]
 ) -> dict:
@@ -169,14 +191,21 @@ def run_task(
     use_cache: bool = False,
     sleep_fn: Callable[[float], None] = time.sleep,
 ) -> dict:
-    """Advance one task through pending -> running -> done|failed|timeout. [FR-02, FR-03]
+    """Advance one task through pending -> running -> done|failed|timeout. [FR-02, FR-03, FR-04]
 
     Retries on `failed`/`timeout` up to `cfg.retry_limit`, sleeping
     `cfg.backoff_base * 2 ** attempt` (attempt numbered from 1) before each
     retry via the injected `sleep_fn`. Refuses immediately, without
     spawning a subprocess, when the breaker is OPEN.
 
-    Citations: SPEC.md lines FR-02 AC-2.1, AC-2.2, AC-2.3; FR-03 AC-3.1, AC-3.3.
+    When `use_cache` is true, consults `cache.lookup` before spawning any
+    subprocess: a within-TTL hit replays the stored result and marks the
+    task `done` with `cached: true`; a miss/expiry/lookup-failure falls
+    through to normal execution, and a `done` outcome is persisted to the
+    cache via `cache.put` (fail-open on either side per NP-07).
+
+    Citations: SPEC.md lines FR-02 AC-2.1, AC-2.2, AC-2.3; FR-03 AC-3.1,
+    AC-3.3; FR-04 AC-4.2, AC-4.3.
     """
 
     home = cfg.home
@@ -191,6 +220,17 @@ def run_task(
         command = state["tasks"][task_id]["command"]
         store.write_state(home, state)
 
+    sig = cache.signature(command)
+    if use_cache:
+        try:
+            cached = cache.lookup(home, sig, cfg.cache_ttl)
+        except Exception:
+            cached = None
+        if cached is not None:
+            task = _persist_cached_result(home, task_id, cached)
+            breaker.record_success(home)
+            return task
+
     result = _run_with_retries(command, cfg=cfg, sleep_fn=sleep_fn)
     status = _classify(result)
 
@@ -199,6 +239,20 @@ def run_task(
         breaker.record_failure(home, cfg)
     else:
         breaker.record_success(home)
+        if use_cache:
+            try:
+                cache.put(
+                    home,
+                    sig,
+                    {
+                        "exit_code": task["exit_code"],
+                        "stdout_tail": task["stdout_tail"],
+                        "stderr_tail": task["stderr_tail"],
+                        "duration_ms": task["duration_ms"],
+                    },
+                )
+            except Exception:
+                pass
     return task
 
 
