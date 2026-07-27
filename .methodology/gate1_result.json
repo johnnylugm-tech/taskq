@@ -1,8 +1,8 @@
 {
   "gate": 1,
   "phase": 5,
-  "fr_id": "FR-04",
-  "overall_score": 98.58,
+  "fr_id": "FR-02",
+  "overall_score": 97.73333333333333,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
@@ -14,19 +14,19 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785118670087\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.338}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
     },
     "test_coverage": {
-      "score": 96.72,
+      "score": 93.33333333333333,
       "threshold": 80,
-      "tests_passed": 12,
+      "tests_passed": 17,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================== 12 passed in 0.35s ============================== (coverage: cache.py 96.72%, 59/61 statements covered, missing lines 87-88 in clear())"
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollecting ... collected 16 items\n\n17 passed in 13.68s\n{\"totals\":{\"percent_covered\":93.33333333333333}}"
     }
   },
   "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
-  "composite_score": 98.58,
+  "composite_score": 97.7333,
   "verdict": "PASS",
   "passed": true
 }
