@@ -22,7 +22,7 @@
 | Code Coverage | 100.0% | 100% |
 | Test Coverage | 100.0% | 100% |
 | Verification Rate | 100.0% | 100% |
-| Total Links | 29 | — |
+| Total Links | 31 | — |
 
 ### ASPICE SWE.3 Compliance
 
@@ -36,11 +36,11 @@
 
 | Requirement | Status | Code Files | Test Files | SAD Module |
 |-------------|--------|------------|------------|------------|
-| FR-01 | ✅ verified | 03-development/src/taskq/__init__.py, 03-development/src/taskq/__main__.py, 03-development/src/taskq/cli.py (+2) | tests/test_fr01.py | — |
+| FR-01 | ✅ verified | 03-development/src/taskq/__init__.py, 03-development/src/taskq/__main__.py, 03-development/src/taskq/cli.py (+3) | tests/test_fr01.py | — |
 | FR-02 | ✅ verified | 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py, 03-development/src/taskq/store.py (+1) | tests/test_fr02.py | — |
 | FR-03 | ✅ verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py | tests/test_fr03.py | — |
 | FR-04 | ✅ verified | 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py, 03-development/src/taskq/executor.py | tests/test_fr04.py | — |
-| FR-05 | ✅ verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py (+1) | tests/test_fr05.py | — |
+| FR-05 | ✅ verified | 03-development/src/taskq/breaker.py, 03-development/src/taskq/cache.py, 03-development/src/taskq/cli.py (+2) | tests/test_fr05.py | — |
 <!-- AUTO-GEN:END -->
 
 
@@ -48,14 +48,14 @@
 
 | NFR ID | Test Coverage | Status |
 |--------|--------------|--------|
-| NFR-01 | test_fr01.py | ✅ VERIFIED |
-| NFR-02 | test_fr01.py, test_fr02.py, test_fr05.py | ✅ VERIFIED |
-| NFR-03 | test_fr01.py, test_fr03.py | ✅ VERIFIED |
-| NFR-04 | test_fr02.py | ✅ VERIFIED |
-| NFR-05 | test_fr02.py, test_fr05.py | ✅ VERIFIED |
-| NFR-06 | — | PENDING |
-| NFR-07 | test_fr01.py | ✅ VERIFIED |
-| NFR-08 | test_fr01.py | ✅ VERIFIED |
-| NFR-09 | test_fr02.py | ✅ VERIFIED |
-| NFR-10 | — | PENDING |
+| NFR-01 | test_fr01.py, test_fr_nfr_extras.py | VERIFIED |
+| NFR-02 | test_fr01.py, test_fr02.py, test_fr05.py | VERIFIED |
+| NFR-03 | test_fr01.py, test_fr03.py, test_fr_nfr_extras.py | VERIFIED |
+| NFR-04 | test_fr02.py | VERIFIED |
+| NFR-05 | test_fr02.py, test_fr05.py, test_fr_nfr_extras.py | VERIFIED |
+| NFR-06 | test_fr_nfr_extras.py | VERIFIED |
+| NFR-07 | test_fr01.py, test_fr_nfr_extras.py | VERIFIED |
+| NFR-08 | test_fr01.py, test_fr_nfr_extras.py | VERIFIED |
+| NFR-09 | test_fr02.py, test_fr_nfr_extras.py | VERIFIED |
+| NFR-10 | test_fr_nfr_extras.py | VERIFIED |
 | NFR-99 | — | PENDING |

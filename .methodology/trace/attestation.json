@@ -1,9 +1,9 @@
 {
   "schema": "harness/traceability/attestation/v1",
-  "git_sha": "c1af37ebeea64598a2b2d35f6b0dec8199fd7634",
-  "content_sha256": "a00290598a5ed7fe04a850c4986aeeb091f6d6bd15484703be3c2fde4c5fb859",
+  "git_sha": "a30113a24b12d62a969cba20adfa7ed26073fc14",
+  "content_sha256": "b27db3fb5f65150b962a133f7e73db385441b4c3895fceb5f8340a800e439dd0",
   "tool": "scripts/build_trace_attestation.py",
-  "overlay_used": null,
+  "overlay_used": "/Users/johnny/projects/taskq/TRACEABILITY_MATRIX.overlay.yaml",
   "overlay_errors": [],
   "matrix": {
     "schema_version": "harness/traceability/overlay/v1",
@@ -29,7 +29,7 @@
     "requirements": {
       "FR-01": {
         "fr_id": "FR-01",
-        "status": "verified",
+        "status": "✅ VERIFIED",
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq/__init__.py",
@@ -47,7 +47,7 @@
       },
       "FR-02": {
         "fr_id": "FR-02",
-        "status": "verified",
+        "status": "✅ VERIFIED",
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq/cli.py",
@@ -63,7 +63,7 @@
       },
       "FR-03": {
         "fr_id": "FR-03",
-        "status": "verified",
+        "status": "✅ VERIFIED",
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq/breaker.py",
@@ -78,7 +78,7 @@
       },
       "FR-04": {
         "fr_id": "FR-04",
-        "status": "verified",
+        "status": "✅ VERIFIED",
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq/cache.py",
@@ -93,7 +93,7 @@
       },
       "FR-05": {
         "fr_id": "FR-05",
-        "status": "verified",
+        "status": "✅ VERIFIED",
         "srs_section": "SAD.md",
         "code_files": [
           "03-development/src/taskq/breaker.py",
