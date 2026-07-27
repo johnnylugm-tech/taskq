@@ -1,0 +1,18 @@
+{
+  "fr": "FINAL_SIGN_OFF.md",
+  "review_status": "APPROVE",
+  "reason": "Instantiated sign-off grounding composite 97.19/PASS on quality_manifest gate_results.gate4 with 0 HIGH/0 MEDIUM; verification provenance cites VERIFICATION_REPORT precedence walk and BASELINE snapshot; 5/5 FR PASS statement matches gate1 results; owner row correctly left Pending review.",
+  "citations": [
+    "FINAL_SIGN_OFF.md:11",
+    "FINAL_SIGN_OFF.md:24",
+    "FINAL_SIGN_OFF.md:39",
+    "FINAL_SIGN_OFF.md:41"
+  ],
+  "docs_embedded": [
+    "QUALITY_REPORT.md",
+    "RELEASE_NOTES.md",
+    "FINAL_SIGN_OFF.md",
+    "VERIFICATION_REPORT.md"
+  ],
+  "confidence": 0.9
+}

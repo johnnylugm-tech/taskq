@@ -1,0 +1,196 @@
+{
+  "gate_num": 3,
+  "phase": 4,
+  "fr_id": null,
+  "overall_score": 96.3,
+  "meets_target": true,
+  "quality_complete": true,
+  "open_critical_count": 0,
+  "open_high_count": 0,
+  "breakdown": {
+    "linting": {
+      "score": 100.0,
+      "threshold": 90,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/linting.txt"
+    },
+    "type_safety": {
+      "score": 100.0,
+      "threshold": 85,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/type_safety.txt"
+    },
+    "test_coverage": {
+      "score": 99.0,
+      "threshold": 80,
+      "issues": [
+        "Unit suite leaves a small set of negative-path assertions uncovered."
+      ],
+      "tool_output": ".sessi-work/round_2/tools/test_coverage.txt"
+    },
+    "security": {
+      "score": 98.0,
+      "threshold": 80,
+      "issues": [
+        "Bandit B404 flags subprocess module usage for review.",
+        "Bandit B603 flags subprocess execution of validated task commands."
+      ],
+      "tool_output": ".sessi-work/round_2/tools/security.txt"
+    },
+    "secrets_scanning": {
+      "score": 100.0,
+      "threshold": 100,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/secrets_scanning.txt"
+    },
+    "license_compliance": {
+      "score": 100.0,
+      "threshold": 100,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/license_compliance.txt"
+    },
+    "integration_coverage": {
+      "score": 91.0,
+      "threshold": 60,
+      "issues": [
+        "Integration suite leaves 9% of product lines uncovered (cli.py 78%, breaker.py 90%, cache.py 89%, executor.py 92%)."
+      ],
+      "tool_output": ".sessi-work/round_2/tools/integration_coverage.txt"
+    },
+    "architecture": {
+      "score": 100.0,
+      "threshold": 80,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/architecture.txt"
+    },
+    "readability": {
+      "score": 89.7,
+      "threshold": 80,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/readability.txt"
+    },
+    "error_handling": {
+      "score": 100.0,
+      "threshold": 80,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/error_handling.txt"
+    },
+    "documentation": {
+      "score": 100.0,
+      "threshold": 75,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/documentation.txt"
+    },
+    "test_assertion_quality": {
+      "score": 93.07,
+      "threshold": 60,
+      "issues": [
+        "Seven injection-character tests delegate assertions to a helper and are reported as zero-assert by the AST scanner."
+      ],
+      "tool_output": ".sessi-work/round_2/tools/test_assertion_quality.txt"
+    },
+    "performance": {
+      "score": 100.0,
+      "threshold": 75,
+      "issues": [],
+      "tool_output": ".sessi-work/round_2/tools/performance.txt"
+    },
+    "traceability": {
+      "score": 80.0,
+      "tool_evidence": "framework: compute_trace_dimension(gate=3) → 4a=100.0% 4b=80.4% 4c=80.0% merged=80.0%",
+      "threshold": 80.0,
+      "framework_override": true
+    },
+    "adversarial_review": {
+      "score": 100.0,
+      "tool_evidence": "framework: verify_bug_hunt_report(bug_hunt_report.json) → ok=True, open_blocking=0",
+      "threshold": 100,
+      "framework_override": true
+    }
+  },
+  "enforcer_sha": "27e58a2d19a77d01f464d4d91c754ed24b2994ef",
+  "crg_review_context": {
+    "status": "ok",
+    "summary": "Review context for 15 changed file(s):\n  - Risk: high\n  - 137 impacted nodes in 11 files",
+    "risk": "high",
+    "changed_file_count": 15,
+    "impacted_file_count": 11,
+    "key_entities": [
+      "/Users/johnny/projects/taskq/03-development/src/taskq/breaker.py",
+      "BreakerOpenError",
+      "_default_state",
+      "_locked",
+      "_seconds_since"
+    ],
+    "test_gaps": 25,
+    "next_tool_suggestions": [
+      "detect_changes",
+      "get_affected_flows",
+      "get_impact_radius"
+    ],
+    "context_savings": {
+      "estimated": true,
+      "saved_tokens": 27829,
+      "saved_percent": 100
+    }
+  },
+  "crg_impact_radius": {
+    "status": "ok",
+    "summary": "Blast radius for 15 changed file(s):\n  - 54 nodes directly changed\n  - 137 nodes impacted (within 2 hops)\n  - 11 additional files affected",
+    "risk": "high",
+    "impacted_file_count": 11,
+    "key_entities": [
+      "/Users/johnny/projects/taskq/03-development/conftest.py",
+      "/Users/johnny/projects/taskq/03-development/src/taskq/__main__.py",
+      "/Users/johnny/projects/taskq/03-development/src/taskq/cache.py",
+      "_empty_state",
+      "_locked"
+    ],
+    "truncated": false,
+    "context_savings": {
+      "estimated": true,
+      "saved_tokens": 27821,
+      "saved_percent": 100
+    }
+  },
+  "crg_affected_flows": {
+    "total": 8,
+    "flows": [
+      {
+        "name": "read_state",
+        "criticality": 0.37
+      },
+      {
+        "name": "add_task",
+        "criticality": 0.37
+      },
+      {
+        "name": "record_failure",
+        "criticality": 0.37
+      },
+      {
+        "name": "check",
+        "criticality": 0.37
+      },
+      {
+        "name": "write_state",
+        "criticality": 0.36
+      },
+      {
+        "name": "reset",
+        "criticality": 0.36
+      },
+      {
+        "name": "record_success",
+        "criticality": 0.36
+      },
+      {
+        "name": "load",
+        "criticality": 0.36
+      }
+    ]
+  },
+  "composite_score": 96.3,
+  "verdict": "PASS",
+  "passed": true
+}

@@ -1,0 +1,39 @@
+{"phase": 3, "gate": 1, "fr_id": "FR-01", "ts": 1784969403.545739}
+{"phase": 3, "gate": 1, "fr_id": "FR-02", "ts": 1784989229.284914}
+{"phase": 3, "gate": 1, "fr_id": "FR-03", "ts": 1785028991.549951}
+{"phase": 3, "gate": 1, "fr_id": "FR-04", "ts": 1785030390.196464}
+{"phase": 3, "gate": 1, "fr_id": "FR-05", "ts": 1785032010.172231}
+{"phase": 3, "gate": 2, "fr_id": "phase", "ts": 1785037095.178529}
+{"phase": 4, "gate": 1, "fr_id": "FR-04", "ts": 1785071717.539983}
+{"phase": 4, "gate": 1, "fr_id": "FR-02", "ts": 1785071723.21437}
+{"phase": 4, "gate": 1, "fr_id": "FR-05", "ts": 1785071769.608118}
+{"phase": 4, "gate": 1, "fr_id": "FR-01", "ts": 1785071890.109152}
+{"phase": 4, "gate": 1, "fr_id": "FR-03", "ts": 1785072056.538351}
+{"phase": 4, "gate": 1, "fr_id": "FR-01", "ts": 1785074887.2566679}
+{"phase": 4, "gate": 1, "fr_id": "FR-02", "ts": 1785074888.124217}
+{"phase": 4, "gate": 1, "fr_id": "FR-03", "ts": 1785074888.9384289}
+{"phase": 4, "gate": 1, "fr_id": "FR-04", "ts": 1785074889.678779}
+{"phase": 4, "gate": 1, "fr_id": "FR-05", "ts": 1785074890.3906019}
+{"phase": 4, "gate": 3, "fr_id": "phase", "ts": 1785079853.923745}
+{"phase": 5, "gate": 1, "fr_id": "FR-01", "ts": 1785118679.0860338}
+{"phase": 5, "gate": 1, "fr_id": "FR-04", "ts": 1785118709.863104}
+{"phase": 5, "gate": 1, "fr_id": "FR-02", "ts": 1785118727.143329}
+{"phase": 5, "gate": 1, "fr_id": "FR-05", "ts": 1785118744.060797}
+{"phase": 5, "gate": 1, "fr_id": "FR-03", "ts": 1785118937.473967}
+{"phase": 6, "gate": 4, "fr_id": "phase", "ts": 1785126344.226424, "source": "finalize"}
+{"phase": 6, "gate": 4, "fr_id": "phase", "ts": 1785126520.014186, "source": "finalize"}
+{"phase": 6, "gate": 1, "fr_id": "FR-01", "ts": 1785127205.638635, "source": "finalize"}
+{"phase": 6, "gate": 1, "fr_id": "FR-02", "ts": 1785127282.275916, "source": "finalize"}
+{"phase": 6, "gate": 1, "fr_id": "FR-05", "ts": 1785127294.466361, "source": "finalize"}
+{"phase": 6, "gate": 4, "fr_id": "phase", "ts": 1785127343.567426, "source": "finalize"}
+{"phase": 7, "gate": 1, "fr_id": "FR-01", "ts": 1785133704.951295, "source": "finalize"}
+{"phase": 7, "gate": 1, "fr_id": "FR-05", "ts": 1785133746.935443, "source": "finalize"}
+{"phase": 7, "gate": 1, "fr_id": "FR-04", "ts": 1785133793.107798, "source": "finalize"}
+{"phase": 7, "gate": 1, "fr_id": "FR-02", "ts": 1785134282.201407, "source": "finalize"}
+{"phase": 7, "gate": 1, "fr_id": "FR-02", "ts": 1785134741.1124868, "source": "finalize"}
+{"phase": 7, "gate": 1, "fr_id": "FR-03", "ts": 1785135128.5191848, "source": "finalize"}
+{"phase": 8, "gate": 1, "fr_id": "FR-01", "ts": 1785136337.448265, "source": "finalize"}
+{"phase": 8, "gate": 1, "fr_id": "FR-02", "ts": 1785136468.328526, "source": "finalize"}
+{"phase": 8, "gate": 1, "fr_id": "FR-03", "ts": 1785136625.418436, "source": "finalize"}
+{"phase": 8, "gate": 1, "fr_id": "FR-04", "ts": 1785136760.807682, "source": "finalize"}
+{"phase": 8, "gate": 1, "fr_id": "FR-05", "ts": 1785136836.511231, "source": "finalize"}

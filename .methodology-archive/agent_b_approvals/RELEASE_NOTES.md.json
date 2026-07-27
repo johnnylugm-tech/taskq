@@ -1,0 +1,18 @@
+{
+  "fr": "RELEASE_NOTES.md",
+  "review_status": "APPROVE",
+  "reason": "Fully instantiated (not template); Gate4 composite 97.19 and per-FR Gate1 scores, Gate3 96.3, DA-waiver human-review flag, and 6 LOW known limitations all trace to quality_manifest.json, gate4_result.json, VERIFICATION_REPORT and BASELINE; state phase=6/last_gate=4 matches state.json.",
+  "citations": [
+    "RELEASE_NOTES.md:10",
+    "RELEASE_NOTES.md:58",
+    "RELEASE_NOTES.md:73",
+    "RELEASE_NOTES.md:85"
+  ],
+  "docs_embedded": [
+    "QUALITY_REPORT.md",
+    "RELEASE_NOTES.md",
+    "FINAL_SIGN_OFF.md",
+    "VERIFICATION_REPORT.md"
+  ],
+  "confidence": 0.9
+}

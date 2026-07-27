@@ -1,0 +1,176 @@
+{
+  "schema_version": "1.0",
+  "generated_at_phase": 2,
+  "fr_ids": [
+    "FR-01",
+    "FR-02",
+    "FR-03",
+    "FR-04",
+    "FR-05"
+  ],
+  "nfr_dimension_mapping": {
+    "NFR-01": "performance",
+    "NFR-02": "security",
+    "NFR-03": "error_handling",
+    "NFR-04": "security",
+    "NFR-05": "readability",
+    "NFR-07": "error_handling",
+    "NFR-08": "error_handling",
+    "NFR-10": "readability"
+  },
+  "nfr_fr_mapping": {},
+  "nfr_traceability": {
+    "NFR-01": {
+      "type": "performance",
+      "target": "submit + status p95 < 50 ms over 100 iterations",
+      "module": "taskq.store"
+    },
+    "NFR-02": {
+      "type": "security",
+      "target": "zero shell=True usage; all 7 injection characters have negative tests",
+      "module": "taskq.cli"
+    },
+    "NFR-03": {
+      "type": "reliability",
+      "target": "all 3 data files remain valid JSON after interruption; breaker recovery <= cooldown + 1 s",
+      "module": "taskq.store"
+    },
+    "NFR-04": {
+      "type": "security",
+      "target": "matching output lines are replaced with [REDACTED] before persistence",
+      "module": "taskq.executor"
+    },
+    "NFR-05": {
+      "type": "maintainability",
+      "target": "all public functions and classes have docstrings containing [FR-XX]",
+      "module": "taskq.models"
+    },
+    "NFR-06": {
+      "type": "deployability",
+      "target": "all 8 TASKQ_* settings are centralized in config.py and documented",
+      "module": "taskq.config"
+    },
+    "NFR-07": {
+      "type": "reliability",
+      "target": "all 4 fault scenarios recover or fail fast without silent rebuild",
+      "module": "taskq.store"
+    },
+    "NFR-08": {
+      "type": "reliability",
+      "target": "4 concurrent processes preserve all 3 JSON files; network filesystems warn on lock fallback",
+      "module": "taskq.store"
+    },
+    "NFR-09": {
+      "type": "scalability",
+      "target": "1000-task p95 < 100 ms; run --all loses 0 of 100 tasks; peak memory < 100 MB",
+      "module": "taskq.executor"
+    },
+    "NFR-10": {
+      "type": "maintainability",
+      "target": "version=1 roots; older versions migrate with backup; future versions and migration failures exit 1",
+      "module": "taskq.store"
+    }
+  },
+  "quality_targets": {
+    "max_complexity": 15,
+    "min_coverage": 80,
+    "max_coupling": 0.3
+  },
+  "fr_module_traceability": {
+    "FR-01": "taskq.cli",
+    "FR-02": "taskq.executor",
+    "FR-03": "taskq.breaker",
+    "FR-04": "taskq.cache",
+    "FR-05": "taskq.cli"
+  },
+  "architecture_constraints": [
+    "no_circular_dependencies"
+  ],
+  "high_risk_modules": [
+    "taskq.executor",
+    "taskq.store"
+  ],
+  "gate_score_overrides": {
+    "performance": 75.0,
+    "security": 80.0,
+    "error_handling": 80.0,
+    "readability": 80.0,
+    "test_coverage": 80.0
+  },
+  "gate_results": {
+    "gate1": {
+      "FR-01": {
+        "score": 100.0,
+        "quality_complete": true,
+        "rounds_used": 2,
+        "open_critical": 0,
+        "open_high": 0
+      },
+      "FR-02": {
+        "score": 100.0,
+        "quality_complete": true,
+        "rounds_used": 2,
+        "open_critical": 0,
+        "open_high": 0
+      },
+      "FR-03": {
+        "score": 97.46,
+        "quality_complete": true,
+        "rounds_used": 2,
+        "open_critical": 0,
+        "open_high": 0
+      },
+      "FR-04": {
+        "score": 98.88,
+        "quality_complete": true,
+        "rounds_used": 2,
+        "open_critical": 0,
+        "open_high": 0
+      },
+      "FR-05": {
+        "score": 97.55,
+        "quality_complete": true,
+        "rounds_used": 2,
+        "open_critical": 0,
+        "open_high": 0
+      }
+    },
+    "gate2": {
+      "score": 96.66,
+      "quality_complete": true,
+      "rounds_used": 2,
+      "open_critical": 0,
+      "open_high": 0,
+      "phase": 3,
+      "gate": 2,
+      "fr_scope": "all",
+      "overall_score": 96.66
+    },
+    "gate3": {
+      "score": 96.3,
+      "quality_complete": true,
+      "rounds_used": 2,
+      "open_critical": 0,
+      "open_high": 0,
+      "phase": 4,
+      "gate": 3,
+      "fr_scope": "all",
+      "overall_score": 96.3
+    },
+    "gate4": {
+      "score": 97.19,
+      "quality_complete": true,
+      "rounds_used": 3,
+      "open_critical": 0,
+      "open_high": 0,
+      "da_waiver_applied": [
+        "architecture"
+      ],
+      "da_waiver_needs_human_review": true,
+      "phase": 6,
+      "gate": 4,
+      "fr_scope": "all",
+      "overall_score": 97.19
+    }
+  }
+}
