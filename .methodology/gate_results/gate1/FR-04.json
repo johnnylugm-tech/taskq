@@ -1,8 +1,8 @@
 {
   "gate": 1,
-  "phase": 5,
+  "phase": 7,
   "fr_id": "FR-04",
-  "overall_score": 98.58,
+  "overall_score": 98.88,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
@@ -14,7 +14,7 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785118670087\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.338}}"
+      "tool_evidence": "pyright summary.errorCount=0; informationCount=0; timeInSec=0.311"
     },
     "test_coverage": {
       "score": 96.72,
@@ -22,11 +22,11 @@
       "tests_passed": 12,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================== 12 passed in 0.35s ============================== (coverage: cache.py 96.72%, 59/61 statements covered, missing lines 87-88 in clear())"
+      "tool_evidence": "12 passed in 0.38s; coverage=96.72% for taskq/cache.py; all 9 required tests present and passing: test_signature_sha256, test_cached_replay_within_ttl, test_cache_miss_normal_execution, test_cache_concurrent_writes, test_fr04_cache_unavailable_fallback, test_fr04_cache_recovers_after_transient_outage, test_fr04_cache_actually_used_on_hit, test_fr04_output_feeds_fr02_executor_pipeline"
     }
   },
-  "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
-  "composite_score": 98.58,
+  "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
+  "composite_score": 98.88,
   "verdict": "PASS",
   "passed": true
 }

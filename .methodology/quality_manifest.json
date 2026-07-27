@@ -107,9 +107,9 @@
         "open_high": 0
       },
       "FR-02": {
-        "score": 93.93,
-        "quality_complete": true,
-        "rounds_used": 2,
+        "score": 90.93,
+        "quality_complete": false,
+        "rounds_used": 1,
         "open_critical": 0,
         "open_high": 0
       },
@@ -121,7 +121,7 @@
         "open_high": 0
       },
       "FR-04": {
-        "score": 98.58,
+        "score": 98.88,
         "quality_complete": true,
         "rounds_used": 2,
         "open_critical": 0,
