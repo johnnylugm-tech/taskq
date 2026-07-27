@@ -1,6 +1,6 @@
 # Quality Report
 
-> **Generated**: 2026-07-27 12:25:44
+> **Generated**: 2026-07-27 12:28:40
 > **Gate**: 4
 > **Overall Score**: 97.1946/100
 
@@ -50,11 +50,12 @@
 
 ## Architecture (CRG)
 
-Architecture: 15 communities, 1 community pairs, 0 warning(s)
+Architecture: 18 communities, 1 community pairs, 0 warning(s)
 
 | Community | Size | Cohesion |
 |---|---|---|
 | tests-exits | 31 | 0.26 |
+| tests-write | 23 | 0.22 |
 | tests-exit | 19 | 0.37 |
 | tests-token | 18 | 0.27 |
 | taskq-task | 11 | 0.25 |
@@ -63,7 +64,6 @@ Architecture: 15 communities, 1 community pairs, 0 warning(s)
 | tests-cache | 10 | 0.23 |
 | taskq-record | 9 | 0.33 |
 | integration-cli | 8 | 0.51 |
-| tests-injection | 8 | 0.56 |
 
 
 ### Dead Code Candidates (CRG)

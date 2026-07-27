@@ -1,7 +1,7 @@
 {
   "schema": "harness/traceability/attestation/v1",
-  "git_sha": "7c18b78e1f2b409b63463cde67399af55616488d",
-  "content_sha256": "b2543d5c98de4cbe57ee32f8e4e4e2a34169ab7951fa6d4f10124ea87a0a0955",
+  "git_sha": "c1af37ebeea64598a2b2d35f6b0dec8199fd7634",
+  "content_sha256": "a00290598a5ed7fe04a850c4986aeeb091f6d6bd15484703be3c2fde4c5fb859",
   "tool": "scripts/build_trace_attestation.py",
   "overlay_used": null,
   "overlay_errors": [],
@@ -14,7 +14,7 @@
       "code_coverage": "100.0%",
       "test_coverage": "100.0%",
       "verification_rate": "100.0%",
-      "total_links": 29,
+      "total_links": 31,
       "missing_mappings": {
         "fr_without_srs": [],
         "fr_without_code": [],
@@ -35,6 +35,7 @@
           "03-development/src/taskq/__init__.py",
           "03-development/src/taskq/__main__.py",
           "03-development/src/taskq/cli.py",
+          "03-development/src/taskq/cli_helpers.py",
           "03-development/src/taskq/config.py",
           "03-development/src/taskq/store.py"
         ],
@@ -98,6 +99,7 @@
           "03-development/src/taskq/breaker.py",
           "03-development/src/taskq/cache.py",
           "03-development/src/taskq/cli.py",
+          "03-development/src/taskq/cli_helpers.py",
           "03-development/src/taskq/store.py"
         ],
         "test_files": [

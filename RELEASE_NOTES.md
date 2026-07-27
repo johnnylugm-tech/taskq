@@ -1,6 +1,6 @@
 # Release Notes
 
-> **Generated**: 2026-07-27 12:25:44
+> **Generated**: 2026-07-27 12:28:40
 > **Version**: development
 
 ---
@@ -54,6 +54,7 @@
 
 ## Other
 
+- release(P6): Gate4 PASS score=97.2 — pipeline complete
 - chore: refresh 01-requirements/TRACEABILITY_MATRIX.md from Round 25 harness fix
 - chore: bump harness submodule to 7af95ba (Round 25: NFR scan uses ProjectLayout.active_test_dir)
 - handover: advance to Phase 6
@@ -73,7 +74,6 @@
 - chore: bump harness submodule to d35beeb (Round 16 PYTHONPATH fix)
 - handover: advance to Phase 4
 - chore: bump harness submodule to 97cd298 (preserve override floor)
-- chore: bump harness submodule to 7c60859 (Gate2 traceability threshold fix)
 
 ---
 

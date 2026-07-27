@@ -12,6 +12,9 @@
         },
         {
           "name": "taskq.cli"
+        },
+        {
+          "name": "taskq.cli_helpers"
         }
       ],
       "allowed_dependencies": [

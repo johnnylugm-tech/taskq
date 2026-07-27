@@ -200,10 +200,10 @@
   "enforcer_sha": "e7a3d3d44e1aba0f8197a9e9b98868fb816c13e2",
   "crg_review_context": {
     "status": "ok",
-    "summary": "Review context for 7 changed file(s):\n  - Risk: high\n  - 131 impacted nodes in 12 files",
+    "summary": "Review context for 29 changed file(s):\n  - Risk: high\n  - 153 impacted nodes in 13 files",
     "risk": "high",
-    "changed_file_count": 7,
-    "impacted_file_count": 12,
+    "changed_file_count": 29,
+    "impacted_file_count": 13,
     "key_entities": [
       "/Users/johnny/projects/taskq/03-development/src/taskq/cli.py",
       "_add_json_flag",
@@ -211,7 +211,7 @@
       "clear_command",
       "list_command"
     ],
-    "test_gaps": 30,
+    "test_gaps": 38,
     "next_tool_suggestions": [
       "detect_changes",
       "get_affected_flows",
@@ -219,27 +219,27 @@
     ],
     "context_savings": {
       "estimated": true,
-      "saved_tokens": 10483,
-      "saved_percent": 99
+      "saved_tokens": 27606,
+      "saved_percent": 100
     }
   },
   "crg_impact_radius": {
     "status": "ok",
-    "summary": "Blast radius for 7 changed file(s):\n  - 34 nodes directly changed\n  - 131 nodes impacted (within 2 hops)\n  - 12 additional files affected",
+    "summary": "Blast radius for 29 changed file(s):\n  - 74 nodes directly changed\n  - 153 nodes impacted (within 2 hops)\n  - 13 additional files affected",
     "risk": "high",
-    "impacted_file_count": 12,
+    "impacted_file_count": 13,
     "key_entities": [
       "/Users/johnny/projects/taskq/03-development/conftest.py",
+      "/Users/johnny/projects/taskq/03-development/src/taskq/__main__.py",
       "/Users/johnny/projects/taskq/03-development/src/taskq/breaker.py",
       "BreakerOpenError",
-      "_default_state",
-      "_locked"
+      "_default_state"
     ],
     "truncated": false,
     "context_savings": {
       "estimated": true,
-      "saved_tokens": 10485,
-      "saved_percent": 99
+      "saved_tokens": 27594,
+      "saved_percent": 100
     }
   },
   "crg_affected_flows": {
