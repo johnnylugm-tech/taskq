@@ -1,6 +1,6 @@
 {
   "gate": 1,
-  "phase": 7,
+  "phase": 8,
   "fr_id": "FR-04",
   "overall_score": 98.88,
   "quality_complete": true,
@@ -14,7 +14,7 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "pyright summary.errorCount=0; informationCount=0; timeInSec=0.311"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785136706167\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.313}}"
     },
     "test_coverage": {
       "score": 96.72,
@@ -22,7 +22,7 @@
       "tests_passed": 12,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "12 passed in 0.38s; coverage=96.72% for taskq/cache.py; all 9 required tests present and passing: test_signature_sha256, test_cached_replay_within_ttl, test_cache_miss_normal_execution, test_cache_concurrent_writes, test_fr04_cache_unavailable_fallback, test_fr04_cache_recovers_after_transient_outage, test_fr04_cache_actually_used_on_hit, test_fr04_output_feeds_fr02_executor_pipeline"
+      "tool_evidence": "============================== 12 passed in 0.20s ==============================\ncoverage: 59/61 statements (96.72%) in 03-development/src/taskq/cache.py\nspec_coverage: 9/9 required tests present (100%)"
     }
   },
   "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
