@@ -1,8 +1,8 @@
 {
   "gate": 1,
-  "phase": 4,
+  "phase": 5,
   "fr_id": "FR-04",
-  "overall_score": 98.88,
+  "overall_score": 98.58,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
@@ -14,7 +14,7 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.318}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785118670087\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.338}}"
     },
     "test_coverage": {
       "score": 96.72,
@@ -22,11 +22,11 @@
       "tests_passed": 12,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 12 items\n03-development/tests/test_fr04.py ............                           [100%]\n\n============================== 12 passed in 0.43s ==============================\ncoverage: percent_covered 96.72% (59/61 lines in 03-development/src/taskq/cache.py), missing_lines [87, 88] in unused `clear` helper. spec_cov_pct=100% (all 8 unique required test functions present: test_signature_sha256, test_cached_replay_within_ttl, test_cache_miss_normal_execution, test_cache_concurrent_writes, test_fr04_cache_unavailable_fallback, test_fr04_cache_recovers_after_transient_outage, test_fr04_cache_actually_used_on_hit, test_fr04_output_feeds_fr02_executor_pipeline)."
+      "tool_evidence": "============================== 12 passed in 0.35s ============================== (coverage: cache.py 96.72%, 59/61 statements covered, missing lines 87-88 in clear())"
     }
   },
-  "enforcer_sha": "cdc6fe1171a8b00cbc97008688b7a1cb4cdf54ca-dirty",
-  "composite_score": 98.88,
+  "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
+  "composite_score": 98.58,
   "verdict": "PASS",
   "passed": true
 }
