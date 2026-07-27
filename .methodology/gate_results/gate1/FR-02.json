@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.333}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.326}}"
     },
     "test_coverage": {
       "score": 100,
       "threshold": 80,
-      "tests_passed": 21,
+      "tests_passed": 26,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 21 items\n03-development/tests/test_fr02.py::test_shell_true_grep_zero_matches PASSED\n03-development/tests/test_fr02.py::test_state_transitions PASSED\n03-development/tests/test_fr02.py::test_result_record_fields PASSED\n03-development/tests/test_fr02.py::test_run_all_concurrent PASSED\n03-development/tests/test_fr02.py::test_timeout_exit_code_4 PASSED\n03-development/tests/test_fr02.py::test_run_all_concurrent_state_transitions_isolated PASSED\n03-development/tests/test_fr02.py::test_run_subprocess_orphan_cleanup_on_timeout PASSED\n03-development/tests/test_fr02.py::test_sk_token_redacted PASSED\n03-development/tests/test_fr02.py::test_token_equals_redacted PASSED\n03-development/tests/test_fr02.py::test_sk_token_redacted_stderr PASSED\n03-development/tests/test_fr02.py::test_token_equals_redacted_stderr PASSED\n03-development/tests/test_fr02.py::test_secret_redaction_before_truncation PASSED\n03-development/tests/test_fr02.py::test_fr02_output_feeds_fr03_retry_pipeline PASSED\n03-development/tests/test_fr02.py::test_no_shell_true_in_source PASSED\n21 passed in 13.72s\nCoverage: 100.00% on 03-development/src/taskq/executor.py (120/120 statements)"
+      "tool_evidence": "collected 26 items\n26 passed in 17.50s\nCoverage: 100% on 03-development/src/taskq/executor.py (120/120 statements)\nAll 16 required spec tests present and passing."
     }
   },
   "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
