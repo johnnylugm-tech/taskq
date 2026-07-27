@@ -41,7 +41,7 @@ def get_write_lock() -> threading.Lock:
 
 
 def utc_now_iso() -> str:
-    """Return the current UTC time as an ISO-8601 string with a ``Z`` suffix."""
+    """Return the current UTC time as an ISO-8601 string with a ``Z`` suffix. [FR-01]"""
 
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -68,6 +68,9 @@ def _read_unlocked(path: Path) -> dict:
 
     Citations: SPEC.md §7 (AC-5.7) — never rewrite a corrupted file, only
     read and raise.
+
+    A `version: 0` payload is returned as-is so the caller can migrate it
+    atomically under an exclusive lock; anything else off-schema raises.
     """
 
     if not path.exists():
@@ -77,8 +80,28 @@ def _read_unlocked(path: Path) -> dict:
             state = json.load(source)
         except json.JSONDecodeError as exc:
             raise StoreCorruptedError(str(exc)) from exc
-    if state.get("version") != 1 or not isinstance(state.get("tasks"), dict):
+    version = state.get("version")
+    if version == 0:
+        return state
+    if version != 1 or not isinstance(state.get("tasks"), dict):
         raise ValueError("unsupported tasks store schema")
+    return state
+
+
+def _migrate_v0_to_v1_unlocked(path: Path) -> dict:
+    """Migrate a `version: 0` store to `version: 1` with a `.v0.bak` backup.
+
+    Citations: NFR-10 — older versions migrate with backup; a pre-existing
+    backup is preserved (never clobbered). Caller must hold an exclusive
+    lock on the directory.
+    """
+
+    backup = path.with_name(path.name + ".v0.bak")
+    if not backup.exists():
+        backup.write_bytes(path.read_bytes())
+    state = _read_unlocked(path)
+    state["version"] = 1
+    _write_unlocked(path, state)
     return state
 
 
@@ -107,8 +130,17 @@ def read_state(home: Path) -> dict:
     Citations: SPEC.md lines 130, 153-159.
     """
 
+    path = home / "tasks.json"
     with _locked(home, exclusive=False):
-        return _read_unlocked(home / "tasks.json")
+        state = _read_unlocked(path)
+        if state.get("version") != 0:
+            return state
+    # v0 detected: upgrade the lock to exclusive so we can migrate atomically.
+    with _locked(home, exclusive=True):
+        state = _read_unlocked(path)
+        if state.get("version") == 0:
+            state = _migrate_v0_to_v1_unlocked(path)
+    return state
 
 
 def write_state(home: Path, state: dict) -> None:
@@ -145,6 +177,8 @@ def add_task(home: Path, command: str, name: str | None = None) -> dict:
     with _locked(home, exclusive=True):
         path = home / "tasks.json"
         state = _read_unlocked(path)
+        if state.get("version") == 0:
+            state = _migrate_v0_to_v1_unlocked(path)
         record = _new_pending_record(command, name)
         state["tasks"][record["id"]] = record
         _write_unlocked(path, state)

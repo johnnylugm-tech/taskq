@@ -20,3 +20,4 @@
 {"phase": 5, "gate": 1, "fr_id": "FR-02", "ts": 1785118727.143329}
 {"phase": 5, "gate": 1, "fr_id": "FR-05", "ts": 1785118744.060797}
 {"phase": 5, "gate": 1, "fr_id": "FR-03", "ts": 1785118937.473967}
+{"phase": 6, "gate": 4, "fr_id": "phase", "ts": 1785126344.226424, "source": "finalize"}

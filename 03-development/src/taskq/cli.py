@@ -8,38 +8,19 @@ SPEC.md §3 FR-05 (AC-5.1..5.8), §7 (exit code map, error phrasing).
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from typing import Sequence
 
 from . import breaker, cache, config, executor, store
-
-# SPEC.md §3 FR-01: seven injection characters must never appear in a
-# submitted command string.
-_INJECTION_CHARACTERS = frozenset(";|&$><`")
-
-# Exit code returned for any validation failure (FR-01 invariant).
-_EXIT_VALIDATION_ERROR = 2
-
-# Exit code returned for a single-task run that produced a timeout (FR-02 AC-2.5).
-_EXIT_TIMEOUT = 4
-
-# Exit code returned when the breaker is OPEN and refuses admission (FR-03 AC-3.3).
-_EXIT_BREAKER_OPEN = 3
-
-
-def _validation_error(message: str) -> int:
-    """Surface a validation rejection on stderr and return the FR-01 exit code."""
-
-    print(message, file=sys.stderr)
-    return _EXIT_VALIDATION_ERROR
-
-
-def _print_json(payload: object) -> None:
-    """Write `payload` to stdout as single-line JSON (FR-05 `--json` contract)."""
-
-    sys.stdout.write(json.dumps(payload, separators=(",", ":")))
+from .cli_helpers import (
+    EXIT_BREAKER_OPEN,
+    EXIT_TIMEOUT,
+    EXIT_VALIDATION_ERROR,
+    INJECTION_CHARACTERS,
+    print_json,
+    validation_error,
+)
 
 
 def _add_json_flag(subparser: argparse.ArgumentParser) -> None:
@@ -56,11 +37,11 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
     command = args.command
     if not command.strip():
-        return _validation_error("command must not be empty")
+        return validation_error("command must not be empty")
     if len(command) > 1000:
-        return _validation_error("command must not exceed 1000 characters")
-    if any(character in command for character in _INJECTION_CHARACTERS):
-        return _validation_error("command contains a forbidden injection character")
+        return validation_error("command must not exceed 1000 characters")
+    if any(character in command for character in INJECTION_CHARACTERS):
+        return validation_error("command contains a forbidden injection character")
 
     if args.name is not None:
         state = store.read_state(cfg.home)
@@ -70,11 +51,11 @@ def submit_command(args: argparse.Namespace, cfg: config.Config) -> int:
             for task in state["tasks"].values()
         )
         if collision:
-            return _validation_error(f"task name already active: {args.name}")
+            return validation_error(f"task name already active: {args.name}")
 
     record = store.add_task(cfg.home, command, args.name)
     if args.json_output:
-        _print_json({"id": record["id"], "status": "pending"})
+        print_json({"id": record["id"], "status": "pending"})
     else:
         print(record["id"])
     return 0
@@ -95,28 +76,28 @@ def run_command(args: argparse.Namespace, cfg: config.Config) -> int:
 
     if args.id and args.all:
         print("run does not accept both <id> and --all", file=sys.stderr)
-        return _EXIT_VALIDATION_ERROR
+        return EXIT_VALIDATION_ERROR
 
     try:
         if args.all:
             results = executor.run_all(cfg=cfg)
             if any(task.get("status") == "timeout" for task in results):
-                return _EXIT_TIMEOUT
+                return EXIT_TIMEOUT
             return 0
         if not args.id:
             print("run requires a task id or --all", file=sys.stderr)
-            return _EXIT_VALIDATION_ERROR
+            return EXIT_VALIDATION_ERROR
         try:
             task = executor.run_task(args.id, cfg=cfg, use_cache=args.cached)
         except KeyError:
             print(f"unknown task: {args.id}", file=sys.stderr)
-            return _EXIT_VALIDATION_ERROR
+            return EXIT_VALIDATION_ERROR
         if task.get("status") == "timeout":
-            return _EXIT_TIMEOUT
+            return EXIT_TIMEOUT
         return 0
     except breaker.BreakerOpenError:
         print("breaker open", file=sys.stderr)
-        return _EXIT_BREAKER_OPEN
+        return EXIT_BREAKER_OPEN
 
 
 def status_command(args: argparse.Namespace, cfg: config.Config) -> int:
@@ -130,9 +111,9 @@ def status_command(args: argparse.Namespace, cfg: config.Config) -> int:
     task = state["tasks"].get(args.id)
     if task is None:
         print(f"unknown task: {args.id}", file=sys.stderr)
-        return _EXIT_VALIDATION_ERROR
+        return EXIT_VALIDATION_ERROR
     if args.json_output:
-        _print_json(task)
+        print_json(task)
     else:
         print(task)
     return 0
@@ -149,7 +130,7 @@ def list_command(args: argparse.Namespace, cfg: config.Config) -> int:
     if args.status is not None:
         tasks = [task for task in tasks if task.get("status") == args.status]
     if args.json_output:
-        _print_json(tasks)
+        print_json(tasks)
     else:
         for task in tasks:
             print(task)
@@ -166,13 +147,15 @@ def clear_command(args: argparse.Namespace, cfg: config.Config) -> int:
     breaker.reset(cfg.home)
     cache.clear(cfg.home)
     if args.json_output:
-        _print_json({"cleared": True})
+        print_json({"cleared": True})
     else:
         print("cleared")
     return 0
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Build the top-level taskq argparse parser with all FR-05 subcommands wired."""
+
     parser = argparse.ArgumentParser(prog="taskq")
     parser.add_argument("--json", action="store_true", dest="json_output")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
@@ -219,7 +202,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if fault_arguments:
         if os.environ.get("TASKQ_INJECT_FAULT_OK") != "1":
             print("inject-fault rejected in production", file=sys.stderr)
-            return _EXIT_VALIDATION_ERROR
+            return EXIT_VALIDATION_ERROR
         print(f"fault injection triggered: {fault_arguments[-1].split('=', 1)[1]}", file=sys.stderr)
         return 1
 

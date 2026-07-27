@@ -43,7 +43,7 @@ def redact(text: str) -> str:
 
 
 def tail(text: str, length: int = _TAIL_LENGTH) -> str:
-    """Return the last ``length`` characters of ``text`` unchanged."""
+    """Return the last ``length`` characters of ``text`` unchanged. [FR-02]"""
 
     if len(text) <= length:
         return text
