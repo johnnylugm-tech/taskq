@@ -1,8 +1,8 @@
 {
   "gate": 1,
   "phase": 7,
-  "fr_id": "FR-02",
-  "overall_score": 100.0,
+  "fr_id": "FR-03",
+  "overall_score": 97.46,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
@@ -14,19 +14,19 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.326}}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
     },
     "test_coverage": {
-      "score": 100,
+      "score": 92.54,
       "threshold": 80,
-      "tests_passed": 26,
+      "tests_passed": 8,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "collected 26 items\n26 passed in 17.50s\nCoverage: 100% on 03-development/src/taskq/executor.py (120/120 statements)\nAll 16 required spec tests present and passing."
+      "tool_evidence": "collected 8 items\n03-development/tests/test_fr03.py::test_retry_exponential_backoff PASSED\n03-development/tests/test_fr03.py::test_breaker_open_threshold PASSED\n03-development/tests/test_fr03.py::test_breaker_open_refuses_exit_3 PASSED\n03-development/tests/test_fr03.py::test_breaker_half_open_probe PASSED\n03-development/tests/test_fr03.py::test_breaker_state_persistence PASSED\n03-development/tests/test_fr03.py::test_fr03_retry_backoff_bounded PASSED\n03-development/tests/test_fr03.py::test_breaker_check_open_missing_opened_at PASSED\n03-development/tests/test_fr03.py::test_breaker_save_load_roundtrip_property PASSED\n\n============================== 8 passed in 0.28s ===============================\nCoverage: percent_covered=92.53731343283582, covered_lines=62, num_statements=67, missing_lines=5"
     }
   },
   "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
-  "composite_score": 100.0,
+  "composite_score": 97.46,
   "verdict": "PASS",
   "passed": true
 }
