@@ -1,32 +1,32 @@
 {
   "gate": 1,
-  "phase": 5,
+  "phase": 6,
   "fr_id": "FR-02",
-  "overall_score": 97.73333333333333,
+  "overall_score": 93.93,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
     "linting": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "All checks passed!"
+      "tool_evidence": "ruff check src/ --extend-ignore RUF001,RUF002,RUF003 -> All checks passed! exit:0"
     },
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0}}"
+      "tool_evidence": "pyright src/ --outputjson errors=0 warnings=0"
     },
     "test_coverage": {
-      "score": 93.33333333333333,
+      "score": 82.94,
       "threshold": 80,
       "tests_passed": 17,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2\ncollecting ... collected 16 items\n\n17 passed in 13.68s\n{\"totals\":{\"percent_covered\":93.33333333333333}}"
+      "tool_evidence": "PYTHONPATH=03-development/src coverage run --source=taskq.executor,taskq.store -m pytest 03-development/tests/test_fr02.py -> 17 passed; coverage report executor+store 175/211 = 82.94% (executor 93%, store 69%, FR-02-tagged avg)"
     }
   },
-  "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
-  "composite_score": 97.7333,
+  "enforcer_sha": "e7a3d3d44e1aba0f8197a9e9b98868fb816c13e2",
+  "composite_score": 93.93,
   "verdict": "PASS",
   "passed": true
 }
