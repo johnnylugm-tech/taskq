@@ -4,7 +4,7 @@
 | Gate 1 PASS | ✅ | 5/5 FRs Gate 1 quality_complete (.py + tests) | — | — |
 | Gate 3 PASS | ✅ | 96.3 composite, 14 dimensions, all .py covered | — | — |
 | Tests (.py) | ✅ | tests/test_frNN.py covers each FR, scripts/build_traceability.py scans src/ | — | — |
-| Coverage | ✅ | 99.0% live pytest --cov on src/ (.py modules) | — | — |
+| Coverage | ✅ | 100.0% live pytest --cov on src/ (.py modules) | — | — |
 
 <!-- AUTO-GEN:START -->
 # Traceability Matrix
@@ -48,14 +48,14 @@
 
 | NFR ID | Test Coverage | Status |
 |--------|--------------|--------|
-| NFR-01 | — | PENDING |
-| NFR-02 | — | PENDING |
-| NFR-03 | — | PENDING |
-| NFR-04 | — | PENDING |
-| NFR-05 | — | PENDING |
+| NFR-01 | test_fr01.py | VERIFIED |
+| NFR-02 | test_fr01.py, test_fr02.py, test_fr05.py | VERIFIED |
+| NFR-03 | test_fr01.py, test_fr03.py | VERIFIED |
+| NFR-04 | test_fr02.py | VERIFIED |
+| NFR-05 | test_fr02.py, test_fr05.py | VERIFIED |
 | NFR-06 | — | PENDING |
-| NFR-07 | — | PENDING |
-| NFR-08 | — | PENDING |
-| NFR-09 | — | PENDING |
+| NFR-07 | test_fr01.py | VERIFIED |
+| NFR-08 | test_fr01.py | VERIFIED |
+| NFR-09 | test_fr02.py | VERIFIED |
 | NFR-10 | — | PENDING |
 | NFR-99 | — | PENDING |
