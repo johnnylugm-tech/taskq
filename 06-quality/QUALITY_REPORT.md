@@ -1,6 +1,6 @@
 # Quality Report
 
-> **Generated**: 2026-07-27 12:28:40
+> **Generated**: 2026-07-27 12:42:23
 > **Gate**: 4
 > **Overall Score**: 97.1946/100
 
@@ -32,10 +32,10 @@
 | FR ID | Score | Status |
 |-------|-------|--------|
 | FR-01 | 100.0 | ✓ PASS |
-| FR-02 | 97.73 | ✓ PASS |
+| FR-02 | 93.93 | ✓ PASS |
 | FR-03 | 97.46 | ✓ PASS |
 | FR-04 | 98.58 | ✓ PASS |
-| FR-05 | 97.72 | ✓ PASS |
+| FR-05 | 96.09 | ✓ PASS |
 
 ---
 
