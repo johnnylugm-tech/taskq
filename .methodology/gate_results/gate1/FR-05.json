@@ -1,6 +1,6 @@
 {
   "gate": 1,
-  "phase": 4,
+  "phase": 5,
   "fr_id": "FR-05",
   "overall_score": 97.72,
   "quality_complete": true,
@@ -14,18 +14,18 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785071693404\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.307}}"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1785118670087\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 8,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 0.338\n    }\n}"
     },
     "test_coverage": {
       "score": 93.28,
       "threshold": 80,
-      "tests_passed": 12,
+      "tests_passed": 16,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 12 items\n\n03-development/tests/test_fr05.py ............                           [100%]\n\n============================== 12 passed in 0.39s ==============================\ncoverage percent_covered: 93.28 (125/134 statements in taskq/cli.py); spec_cov 13/13=100% (all 9 unique required test functions present)."
+      "tool_evidence": "============================= test session starts ==============================\ncollected 16 items\n\ntest_subcommands_wired PASSED, test_run_args PASSED, test_global_json_flag PASSED, test_exit_code_map PASSED, test_status_list_clear PASSED, test_unknown_task_exit_2 PASSED, test_corrupted_store_exit_1 PASSED, test_no_bare_except PASSED, test_inject_fault_rejected_in_production PASSED (+7 more)\n\n============================== 16 passed in 0.39s ==============================\ncoverage: cli.py percent_covered=93.28 (125/134 statements)"
     }
   },
-  "enforcer_sha": "cdc6fe1171a8b00cbc97008688b7a1cb4cdf54ca-dirty",
+  "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
   "composite_score": 97.72,
   "verdict": "PASS",
   "passed": true
