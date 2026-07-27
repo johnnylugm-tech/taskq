@@ -1,6 +1,6 @@
 {
   "gate": 1,
-  "phase": 4,
+  "phase": 5,
   "fr_id": "FR-01",
   "overall_score": 100.0,
   "quality_complete": true,
@@ -9,12 +9,12 @@
     "linting": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "All checks passed!"
+      "tool_evidence": "All checks passed!\nexit:0"
     },
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785071862731\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 8, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.304}}"
+      "tool_evidence": "{\"version\":\"1.1.409\",\"time\":\"1785118654514\",\"generalDiagnostics\":[],\"summary\":{\"filesAnalyzed\":8,\"errorCount\":0,\"warningCount\":0,\"informationCount\":0,\"timeInSec\":0.322}}"
     },
     "test_coverage": {
       "score": 100,
@@ -22,10 +22,10 @@
       "tests_passed": 41,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 41 items\n03-development/tests/test_fr01.py ...................................... [ 92%]\n...                                                                      [100%]\n============================== 41 passed in 0.41s ==============================coverage: 100% for cli.py (134/134 statements)"
+      "tool_evidence": "============================== 41 passed in 0.42s ==============================\nName                              Stmts   Miss  Cover\n03-development/src/taskq/cli.py     134      0   100%"
     }
   },
-  "enforcer_sha": "cdc6fe1171a8b00cbc97008688b7a1cb4cdf54ca-dirty",
+  "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
   "composite_score": 100.0,
   "verdict": "PASS",
   "passed": true
