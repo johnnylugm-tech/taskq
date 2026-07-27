@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 from taskq import store
 
@@ -17,7 +18,7 @@ from taskq import store
 def _seeded_home(tmp_path: Path) -> Path:
     home = tmp_path / "taskq_home"
     home.mkdir()
-    state = {"version": 1, "tasks": {}}
+    state: dict[str, Any] = {"version": 1, "tasks": {}}
     for i in range(50):
         state["tasks"][f"{i:08x}"] = {
             "id": f"{i:08x}",

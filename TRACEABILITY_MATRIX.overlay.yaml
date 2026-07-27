@@ -1,0 +1,13 @@
+schema: harness/traceability/overlay/v1
+# Manual overrides. Re-run `migrate-trace-overlay` if you add more.
+overrides:
+  - fr_id: FR-01
+    status: "✅ VERIFIED"
+  - fr_id: FR-02
+    status: "✅ VERIFIED"
+  - fr_id: FR-03
+    status: "✅ VERIFIED"
+  - fr_id: FR-04
+    status: "✅ VERIFIED"
+  - fr_id: FR-05
+    status: "✅ VERIFIED"

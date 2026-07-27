@@ -527,7 +527,7 @@ def _measure_child_rss_kb(taskq_home: Path) -> float:
     )
 
     def _capture(argv: list[str]) -> tuple[str, str]:
-        stdout, stderr = _run_inprocess(argv)
+        _code, stdout, stderr = _run_inprocess(argv)
         return stdout, stderr
 
     env = _isolated_env(taskq_home)
@@ -572,6 +572,19 @@ def test_v0_migrate_with_backup(taskq_home) -> None:
     assert migrated["version"] == 1
     backup = taskq_home / ("tasks.json" + expected_backup_suffix)
     assert backup.exists(), f"NFR-10: expected backup at {backup}, not found"
+
+
+def test_add_task_on_v0_migrates(taskq_home) -> None:
+    """add_task on a `version: 0` store migrates first, then persists the new record."""
+    tasks_file = taskq_home / "tasks.json"
+    tasks_file.write_text(json.dumps({"version": 0, "tasks": {}}))
+
+    record = store.add_task(taskq_home, "echo migrate-then-add", name=None)
+    assert record["id"]
+    assert record["status"] == "pending"
+    after = json.loads(tasks_file.read_text())
+    assert after["version"] == 1
+    assert record["id"] in after["tasks"]
 
 
 def test_migration_fail_fast(taskq_home, monkeypatch) -> None:
