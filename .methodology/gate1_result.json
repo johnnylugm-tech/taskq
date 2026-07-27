@@ -1,7 +1,7 @@
 {
   "gate": 1,
   "phase": 8,
-  "fr_id": "FR-01",
+  "fr_id": "FR-02",
   "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
@@ -14,15 +14,15 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1785136317984\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 9,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 0.311\n    }\n}"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785136398392\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.311}}"
     },
     "test_coverage": {
       "score": 100,
       "threshold": 80,
-      "tests_passed": 41,
+      "tests_passed": 26,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0 -- /Users/johnny/projects/taskq/.venv/bin/python3\nrootdir: /Users/johnny/projects/taskq\nconfigfile: pytest.ini\nplugins: benchmark-5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=1 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000), cov-7.1.0, hypothesis-6.161.2, anyio-4.14.2\ncollecting ... collected 41 items\n\n03-development/tests/test_fr01.py::test_submit_empty_command_exits_2 PASSED [  2%]\n03-development/tests/test_fr01.py::test_submit_long_command_exits_2 PASSED [  4%]\n03-development/tests/test_fr01.py::test_submit_command_at_1000_chars_accepted PASSED [  7%]\n03-development/tests/test_fr01.py::test_submit_injection_semicolon_rejected PASSED [  9%]\n03-development/tests/test_fr01.py::test_submit_injection_pipe_rejected PASSED [ 12%]\n03-development/tests/test_fr01.py::test_submit_injection_ampersand_rejected PASSED [ 14%]\n03-development/tests/test_fr01.py::test_submit_injection_dollar_rejected PASSED [ 17%]\n03-development/tests/test_fr01.py::test_submit_injection_greater_than_rejected PASSED [ 19%]\n03-development/tests/test_fr01.py::test_submit_injection_less_than_rejected PASSED [ 21%]\n03-development/tests/test_fr01.py::test_submit_injection_backtick_rejected PASSED [ 24%]\n03-development/tests/test_fr01.py::test_name_uniqueness PASSED           [ 26%]\n03-development/tests/test_fr01.py::test_atomic_add_task PASSED           [ 29%]\n03-development/tests/test_fr01.py::test_submit_json_output PASSED        [ 31%]\n03-development/tests/test_fr01.py::test_submit_rejects_injection_chars PASSED [ 34%]\n03-development/tests/test_fr01.py::test_cross_process_no_corruption PASSED [ 36%]\n03-development/tests/test_fr01.py::test_fault_injection_fails_fast_or_recovers PASSED [ 39%]\n03-development/tests/test_fr01.py::test_task_records_timestamps PASSED   [ 41%]\n\n============================== 41 passed in 0.38s =============================="
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0 -- /Users/johnny/projects/taskq/.venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=20 warmup=False warmup_iterations=100000)\nhypothesis profile 'default'\nrootdir: /Users/johnny/projects/taskq\nconfigfile: pytest.ini\nplugins: benchmark-5.2.3, cov-7.1.0, hypothesis-6.161.2, anyio-4.14.2\ncollecting ... collected 26 items"
     }
   },
   "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
