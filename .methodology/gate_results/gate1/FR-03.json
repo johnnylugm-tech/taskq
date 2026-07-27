@@ -1,8 +1,8 @@
 {
   "gate": 1,
-  "phase": 4,
+  "phase": 5,
   "fr_id": "FR-03",
-  "overall_score": 99.45,
+  "overall_score": 97.4627,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
@@ -14,19 +14,19 @@
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1785071991859\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 8,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 0.313\n    }\n}"
+      "tool_evidence": "{\n    \"version\": \"1.1.409\",\n    \"time\": \"1785118891969\",\n    \"generalDiagnostics\": [],\n    \"summary\": {\n        \"filesAnalyzed\": 8,\n        \"errorCount\": 0,\n        \"warningCount\": 0,\n        \"informationCount\": 0,\n        \"timeInSec\": 0.306\n    }\n}\n\n"
     },
     "test_coverage": {
-      "score": 98.39,
+      "score": 92.54,
       "threshold": 80,
       "tests_passed": 8,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0\ncollected 8 items\n\n03-development/tests/test_fr03.py ........                               [100%]\n\n============================== 8 passed in 0.28s ===============================\n\nCoverage for 03-development/src/taskq/breaker.py: 98.39% (61/62 statements, 1 missing at line 122)"
+      "tool_evidence": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0 -- /Users/johnny/projects/taskq/.venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nhypothesis profile 'default'\nrootdir: /Users/johnny/projects/taskq\nconfigfile: pytest.ini\nplugins: benchma"
     }
   },
-  "enforcer_sha": "cdc6fe1171a8b00cbc97008688b7a1cb4cdf54ca-dirty",
-  "composite_score": 99.45,
+  "enforcer_sha": "37adc434d8898e667ad5d3a94ae082cd44949977",
+  "composite_score": 97.4627,
   "verdict": "PASS",
   "passed": true
 }
