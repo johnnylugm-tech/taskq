@@ -683,3 +683,133 @@ def test_cache_put_failure_is_fail_open(taskq_home, monkeypatch):
         f"a cache.put failure must not prevent the task from completing, "
         f"got status={task['status']!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# FR-02 / FR-03 — breaker refuses when OPEN
+# ---------------------------------------------------------------------------
+
+
+def test_run_task_breaker_open_refuses(taskq_home):
+    """FR-03 AC-3.3: an OPEN breaker raises BreakerOpenError before any
+    subprocess is spawned. Covers executor.run_task line 228 (the
+    breaker.BreakerOpenError raise + the early-return guard).
+    """
+    from taskq import breaker
+
+    # Force the breaker into OPEN state via its own persistence API so the
+    # check() call in run_task returns "OPEN" deterministically. The
+    # opened_at must be inside the cooldown window (default 5s) so check()
+    # does not auto-demote to HALF_OPEN; use the current UTC instant.
+    breaker.save(
+        taskq_home,
+        {
+            "version": 1,
+            "state": "OPEN",
+            "failure_count": 99,
+            "opened_at": store.utc_now_iso(),
+        },
+    )
+    cfg = config.load()
+    _seed_pending(taskq_home, "88888888", "true")
+    with pytest.raises(breaker.BreakerOpenError):
+        executor.run_task("88888888", cfg=cfg)
+    # The task must NOT have transitioned to "running" (subprocess never spawned).
+    payload = json_lib.loads((taskq_home / "tasks.json").read_text())
+    assert payload["tasks"]["88888888"]["status"] == "pending", (
+        f"breaker OPEN must refuse without spawning subprocess; "
+        f"got status={payload['tasks']['88888888']['status']!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# FR-02 — run_task raises KeyError on unknown task
+# ---------------------------------------------------------------------------
+
+
+def test_run_task_unknown_task_raises_keyerror(taskq_home):
+    """Defensive guard: run_task must raise KeyError (not silently no-op)
+    when invoked with an id absent from the task store. Covers executor
+    line 233 (the KeyError raise inside run_task's load phase)."""
+    cfg = config.load()
+    # "nope_____1" is not seeded into the store.
+    with pytest.raises(KeyError, match="task not found: nope_____1"):
+        executor.run_task("nope_____1", cfg=cfg)
+
+
+# ---------------------------------------------------------------------------
+# FR-02 / FR-04 — cache hit replay path (executor lines 168, 245-247)
+# ---------------------------------------------------------------------------
+
+
+def test_run_task_cache_hit_replays_cached_result(taskq_home):
+    """FR-04 AC-4.2: when use_cache=True and the cache holds a fresh
+    entry, run_task replays it via `_persist_cached_result` without
+    spawning a subprocess. Covers executor lines 168 (`return
+    _apply_task_update(...)` inside `_persist_cached_result`) and 245-247
+    (the cached-hit branch that calls `_persist_cached_result` then
+    `breaker.record_success`)."""
+    from taskq import cache
+
+    # Seed a pending task whose command signature is predictable.
+    _seed_pending(taskq_home, "99999999", "echo cached-hi")
+    # Pre-populate the cache with a fresh entry for that command's signature.
+    cfg = config.load()
+    sig = cache.signature("echo cached-hi")
+    cache.put(
+        taskq_home,
+        sig,
+        {
+            "exit_code": 0,
+            "stdout_tail": "cached-payload",
+            "stderr_tail": "",
+            "duration_ms": 7,
+        },
+    )
+    # Re-seed the task — the first seed was the input to run_task, but we
+    # need it to survive the initial cache check.
+    task = executor.run_task("99999999", cfg=cfg, use_cache=True)
+    assert task["status"] == "done", (
+        f"cached replay must persist status=done, got {task['status']!r}"
+    )
+    assert task.get("cached") is True, (
+        f"cached replay must set cached=True, got {task.get('cached')!r}"
+    )
+    assert task["stdout_tail"] == "cached-payload", (
+        f"cached replay must preserve cached stdout_tail, got {task['stdout_tail']!r}"
+    )
+    assert task["exit_code"] == 0
+    assert task["duration_ms"] == 7
+    # The persisted file must reflect the replay (not a fresh subprocess run).
+    payload = json_lib.loads((taskq_home / "tasks.json").read_text())
+    persisted = payload["tasks"]["99999999"]
+    assert persisted["stdout_tail"] == "cached-payload", (
+        f"persisted stdout_tail must match cached payload, got {persisted['stdout_tail']!r}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# FR-02 / FR-04 — cache lookup exception is fail-open (executor lines 242-243)
+# ---------------------------------------------------------------------------
+
+
+def test_run_task_cache_lookup_exception_fails_open(taskq_home, monkeypatch):
+    """NP-07: when `cache.lookup` raises (json/OSError/KeyError/ValueError),
+    run_task must swallow the exception and fall through to the normal
+    subprocess path. Covers executor lines 242-243 (the `except` clause
+    that sets `cached = None`)."""
+    from taskq import cache
+
+    def _boom_lookup(*_args, **_kwargs):
+        raise OSError("cache lookup unavailable")
+
+    monkeypatch.setattr(cache, "lookup", _boom_lookup)
+    _seed_pending(taskq_home, "aaaaaaaa", "echo fail-open-lookup")
+    cfg = config.load()
+    # Even though cache.lookup raised, run_task must still complete normally.
+    task = executor.run_task("aaaaaaaa", cfg=cfg, use_cache=True)
+    assert task["status"] == "done", (
+        f"cache.lookup exception must be fail-open; expected status=done, "
+        f"got status={task['status']!r}"
+    )
+    assert task["exit_code"] == 0
