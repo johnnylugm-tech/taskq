@@ -8,7 +8,7 @@
 <!-- harness:auto-start -->
 ## Harness Status _(auto-generated — do not edit this block)_
 
-> Phase: **8 — Config Management** | Last Gate: **Gate 1** | Last FR: FR-04 | Updated: 2026-07-27
+> Phase: **8 — Config Management** | Last Gate: **Gate 1** | Last FR: FR-05 | Updated: 2026-07-27
 
 ### Gate Progress
 | Gate | Score / FRs | Status |
@@ -25,7 +25,7 @@
 | FR-02 | 100.0 | ✅ COMPLETE |
 | FR-03 | 97.5 | ✅ COMPLETE |
 | FR-04 | 98.9 | ✅ COMPLETE |
-| FR-05 | 100.0 | ✅ COMPLETE |
+| FR-05 | 97.5 | ✅ COMPLETE |
 
 ### Architecture Constraints
 - no_circular_dependencies
