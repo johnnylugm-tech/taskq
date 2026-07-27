@@ -813,3 +813,98 @@ def test_run_task_cache_lookup_exception_fails_open(taskq_home, monkeypatch):
         f"got status={task['status']!r}"
     )
     assert task["exit_code"] == 0
+
+
+# ---------------------------------------------------------------------------
+# FR-02 in-process CLI dispatch coverage (cli.run_command validation paths)
+# ---------------------------------------------------------------------------
+
+
+def test_run_command_rejects_id_with_all_flag(taskq_home):
+    """cli.run_command rejects `<id> --all` combination with EXIT_VALIDATION_ERROR.
+
+    Exercises cli.py lines 77-79 (the `args.id and args.all` guard that
+    prints to stderr and returns exit 2). In-process invocation keeps
+    the path in-process so coverage can measure the dispatch branch.
+    """
+    _seed_pending(taskq_home, "aabbccdd", "true")
+    code, _stdout, stderr = _run_inprocess(["run", "aabbccdd", "--all"])
+    assert code == 2, (
+        f"AC-5.6 violation: id+--all must exit 2 (validation), got {code}"
+    )
+    assert "run does not accept both" in stderr, (
+        f"AC-5.6 violation: stderr must explain the rejection, got {stderr!r}"
+    )
+
+
+def test_run_command_requires_id_or_all(taskq_home):
+    """cli.run_command with no id and no --all exits 2 with a stderr hint.
+
+    Exercises cli.py lines 87-89 (the `if not args.id` branch under
+    the non-`--all` path).
+    """
+    code, _stdout, stderr = _run_inprocess(["run"])
+    assert code == 2, (
+        f"run with no args must exit 2 (validation), got {code}"
+    )
+    assert "run requires a task id or --all" in stderr, (
+        f"stderr must explain the missing-arg case, got {stderr!r}"
+    )
+
+
+def test_run_command_unknown_task_exits_2(taskq_home):
+    """cli.run_command surfaces KeyError from executor.run_task as exit 2.
+
+    Exercises cli.py lines 91-94 (the `try/except KeyError` that prints
+    `unknown task: <id>` to stderr and returns EXIT_VALIDATION_ERROR).
+    """
+    code, _stdout, stderr = _run_inprocess(["run", "deadbeef"])
+    assert code == 2, (
+        f"AC-5.6 violation: unknown task id must exit 2, got {code}"
+    )
+    assert "unknown task: deadbeef" in stderr, (
+        f"AC-5.6 violation: stderr must name the unknown task, got {stderr!r}"
+    )
+
+
+def test_run_command_breaker_open_exits_3(taskq_home):
+    """cli.run_command maps BreakerOpenError to exit 3 with stderr message.
+
+    Exercises cli.py lines 98-100 (the `except breaker.BreakerOpenError`
+    clause that prints `breaker open` and returns EXIT_BREAKER_OPEN).
+    """
+    from taskq import breaker
+
+    breaker.save(
+        taskq_home,
+        {
+            "version": 1,
+            "state": "OPEN",
+            "failure_count": 99,
+            "opened_at": store.utc_now_iso(),
+        },
+    )
+    _seed_pending(taskq_home, "bbbb1111", "true")
+    code, _stdout, stderr = _run_inprocess(["run", "bbbb1111"])
+    assert code == 3, (
+        f"FR-03 AC-3.3 violation: breaker open must exit 3, got {code}"
+    )
+    assert "breaker open" in stderr, (
+        f"FR-03 AC-3.3 violation: stderr must say 'breaker open', got {stderr!r}"
+    )
+
+
+def test_run_command_all_with_timeout_exits_4(taskq_home):
+    """cli.run_command --all surfaces EXIT_TIMEOUT when any task times out.
+
+    Exercises cli.py line 85 (the `if any(task.get('status') == 'timeout'...)`
+    branch under the run_all path) by seeding a pending task whose command
+    would time out under the configured per-task timeout.
+    """
+    _seed_pending(taskq_home, "cccc1111", "sleep 10")
+    code, _stdout, _stderr = _run_inprocess(
+        ["run", "--all"], env_extra={"TASKQ_TASK_TIMEOUT": "1"}
+    )
+    assert code == 4, (
+        f"FR-02 AC-2.5 violation: run --all with a timeout must exit 4, got {code}"
+    )
