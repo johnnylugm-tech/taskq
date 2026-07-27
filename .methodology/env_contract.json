@@ -1,0 +1,31 @@
+{
+  "classified_at": "2026-07-27T06:26:09Z",
+  "cli_tools": [
+    "pytest",
+    "pytest_benchmark",
+    "pytest_cov",
+    "python3.11"
+  ],
+  "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
+  "env_vars": {
+    "dev_opt_in": [],
+    "has_default": [
+      "TASKQ_BACKOFF_BASE",
+      "TASKQ_BREAKER_COOLDOWN",
+      "TASKQ_BREAKER_THRESHOLD",
+      "TASKQ_CACHE_TTL",
+      "TASKQ_HOME",
+      "TASKQ_INJECT_FAULT_OK",
+      "TASKQ_MAX_WORKERS",
+      "TASKQ_RETRY_LIMIT",
+      "TASKQ_TASK_TIMEOUT"
+    ],
+    "mandatory": []
+  },
+  "infra_services": {
+    "docker_compose_services": [],
+    "required": []
+  },
+  "schema_version": 1,
+  "source_sha256": "3fbd4620181bacb517545a3f8fba81a8d91aa6cc4c42487ca753621fe9d62888"
+}

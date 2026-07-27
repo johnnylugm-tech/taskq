@@ -1,32 +1,32 @@
 {
   "gate": 1,
-  "phase": 6,
-  "fr_id": "FR-05",
-  "overall_score": 96.09,
+  "phase": 7,
+  "fr_id": "FR-01",
+  "overall_score": 100.0,
   "quality_complete": true,
   "rounds_used": 1,
   "breakdown": {
     "linting": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "ruff check src/ --extend-ignore RUF001,RUF002,RUF003 -> All checks passed! exit:0"
+      "tool_evidence": "All checks passed!"
     },
     "type_safety": {
       "score": 100,
       "threshold": 100,
-      "tool_evidence": "pyright src/ --outputjson errors=0 warnings=0"
+      "tool_evidence": "{\"version\": \"1.1.409\", \"time\": \"1785133692762\", \"generalDiagnostics\": [], \"summary\": {\"filesAnalyzed\": 9, \"errorCount\": 0, \"warningCount\": 0, \"informationCount\": 0, \"timeInSec\": 0.32}}"
     },
     "test_coverage": {
-      "score": 88.2,
+      "score": 100,
       "threshold": 80,
-      "tests_passed": 16,
+      "tests_passed": 41,
       "tests_failed": 0,
       "tests_skipped": 0,
-      "tool_evidence": "PYTHONPATH=03-development/src coverage run --source=taskq.breaker,taskq.cache,taskq.cli,taskq.cli_helpers,taskq.store -m pytest 03-development/tests/test_fr05.py -> 16 passed; coverage report tagged files 314/356 = 88.2%"
+      "tool_evidence": "============================= test session starts ============================== platform darwin -- Python 3.11.15, pytest-8.4.2, pluggy-1.6.0 -- /Users/johnny/projects/taskq/.venv/bin/python3 rootdir: /Users/johnny/projects/taskq configfile: pytest.ini plugins: benchmark-5.2.3, cov-7.1.0, hypothesis-6.161.2, anyio-4.14.2 collect ... 41 items 03-development/tests/test_fr01.py::test_submit_empty_command_exits_2 PASSED test_submit_long_command_exits_2 PASSED test_submit_command_at_1000_chars_accepted PASSED test_submit_injection_semicolon_rejected PASSED test_submit_injection_pipe_rejected PASSED test_submit_injection_ampersand_rejected PASSED test_submit_injection_dollar_rejected PASSED test_submit_injection_greater_than_rejected PASSED test_submit_injection_less_than_rejected PASSED test_submit_injection_backtick_rejected PASSED test_name_uniqueness PASSED test_atomic_add_task PASSED test_submit_json_output PASSED test_submit_rejects_injection_chars PASSED test_cross_process_no_corruption PASSED test_fault_injection_fails_fast_or_recovers PASSED test_task_records_timestamps PASSED ============================== 41 passed in 0.40s =============================="
     }
   },
-  "enforcer_sha": "e7a3d3d44e1aba0f8197a9e9b98868fb816c13e2",
-  "composite_score": 96.09,
+  "enforcer_sha": "f5faa9e14c7f6c5997c89cdbf6ab7ec90dc30fd3",
+  "composite_score": 100.0,
   "verdict": "PASS",
   "passed": true
 }
